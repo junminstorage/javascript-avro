@@ -38,19 +38,19 @@ public class Driver {
 
         for (File testFile : testFiles) {
             ScriptEngine scriptEngine = new ScriptEngineManager().getEngineByName("javascript");
-            Reader reader = new ChainedFileReader(new File(args[0]), testFile);
+            Reader reader = new MultiFileReader(new File(args[0]), testFile);
 
             scriptEngine.eval(reader);
             reader.close();
         }
     }
 
-    private static final class ChainedFileReader extends Reader {
+    private static final class MultiFileReader extends Reader {
 
         private final Iterator<File> files;
         private Reader currentReader;
 
-        public ChainedFileReader(final File file, final File...files) {
+        public MultiFileReader(final File file, final File...files) {
             this.files = new Iterator<File>() {
 
                 int idx = -1;
