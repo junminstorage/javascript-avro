@@ -6,6 +6,7 @@
 
     <property name="src" location="src"/>
     <property name="test" location="test"/>
+    <property name="tools" location="tools"/>
     <property name="build" location="build"/>
     <property name="test-build" location="test-build"/>
     <property name="dist"  location="dist"/>
@@ -17,12 +18,16 @@
         <mkdir dir="${dist}"/>
     </target>
 
-    <target name="test-compile" depends="init">
+    <target name="compile" depends="init">
+        <java jar="${tools}/closure-compiler.jar" args="--js ${src}/avro.js --js_output_file ${build}/avro-min.js" />
+    </target>
+
+    <target name="test-compile" depends="compile">
         <javac srcdir="${test}" destdir="${test-build}" includeAntRuntime="false" debug="true" debuglevel="lines,source"/>
     </target>
 
     <target name="test" depends="test-compile">
-        <java classname="driver/Driver" classpath="${test-build}" args="${src}/avro.js ${test}/testcases" />
+        <java classname="driver/Driver" classpath="${test-build}" args="${build}/avro-min.js ${test}/testcases" />
     </target>
 
     <target name="dist" depends="test">

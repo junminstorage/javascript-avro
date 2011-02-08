@@ -51,7 +51,7 @@ public class Driver {
         private Reader currentReader;
 
         public MultiFileReader(final File file, final File...files) {
-            this.files = new Iterator<File>() {
+            this(new Iterator<File>() {
 
                 int idx = -1;
 
@@ -74,7 +74,11 @@ public class Driver {
                 public void remove() {
                     throw new UnsupportedOperationException("Not supported yet.");
                 }
-            };
+            });
+        }
+
+        public MultiFileReader(Iterator<File> files) {
+            this.files = files;
         }
 
         @Override
