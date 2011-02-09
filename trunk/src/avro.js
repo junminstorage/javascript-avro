@@ -9,6 +9,57 @@ var AVRO = {};
         decodeLookup[base64Chars.charAt(i)] = i;
     }
 
+    var Base64ByteWriter = function() {
+        var buffer = [];
+        var output = "";
+
+        var encodeBuffer = function() {
+            var i;
+            var code;
+
+            for (i = 0; i < buffer.length; i++) {
+                switch (i) {
+                    case 0:
+                        output += base64Chars.charAt((buffer[0] >> 2) & 0x3F);
+                        code = (buffer[0] & 0x03) << 4;
+                    break;
+                    case 1:
+                        output += base64Chars.charAt(code | ((buffer[1] & 0xF0) >> 4));
+                        code = (buffer[1] & 0x0F) << 2;
+                    break;
+                    case 2:
+                        output += base64Chars.charAt(code | ((buffer[2] & 0xC0) >> 6));
+                        output += base64Chars.charAt(buffer[2] & 0x3F);
+                    break;
+                }
+            }
+            if (buffer.length != 3) {
+                output += base64Chars.charAt(code);
+                for (i = 3; i > buffer.length; i--) {
+                    output += "=";
+                }
+            }
+
+            buffer = [];
+        };
+
+        return {
+            writeByte : function(b) {
+                buffer.push(b);
+                if (buffer.length == 3) {
+                    encodeBuffer();
+                }
+            },
+
+            getEncoded : function(last) {
+                if (last && buffer.length != 0) {
+                    encodeBuffer();
+                }
+                return output;
+            }
+        };
+    };
+
     var Base64ByteReader = function(source) {
         var buffer = [];
         var srcIdx = 0;
@@ -26,6 +77,11 @@ var AVRO = {};
                 if (enc == '=') {
                     buffer.pop();
                     break;
+                }
+                // Skip any unknown character
+                if (!decodeLookup.hasOwnProperty(enc)) {
+                    i--;
+                    continue;
                 }
                 
                 code = decodeLookup[enc];
@@ -67,6 +123,8 @@ var AVRO = {};
 
 
     AVRO.decode = function(data, schema) {
-        var reader = Base64ByteReader(data);
+    }
+
+    AVRO.encode = function(data, schema) {
     }
 })();
