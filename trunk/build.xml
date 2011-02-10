@@ -19,7 +19,9 @@
     </target>
 
     <target name="compile" depends="init">
-        <java jar="${tools}/closure-compiler.jar" args="--js ${src}/avro.js --js_output_file ${build}/avro-min.js" />
+        <java jar="${tools}/closure-compiler.jar" fork="true">
+            <arg line="--js ${src}/avro.js --js_output_file ${build}/avro-min.js" />
+        </java>
     </target>
 
     <target name="test-compile" depends="compile">
@@ -27,7 +29,9 @@
     </target>
 
     <target name="test" depends="test-compile">
-        <java classname="driver/Driver" classpath="${test-build}" args="${build}/avro-min.js ${test}/testcases" />
+        <java classname="driver/Driver" classpath="${test-build}" fork="true">
+            <arg line="${build}/avro-min.js ${test}/testcases" />
+        </java>
     </target>
 
     <target name="dist" depends="test">
