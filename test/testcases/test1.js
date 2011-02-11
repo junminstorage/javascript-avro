@@ -1,6 +1,8 @@
 var decoder = AVRO.Base64BinaryDecoder();
 
-decoder.feed("AACAfwAAgP8AAMB/AACAPwAAUEABABRj9Mscr6Uq/P///w/9////Dw==");
+decoder.feed("AACAfwAAgP8AAMB/AACAPwAAUEABABRj9Mscr6Uq/P///w/9////DwID/v///////wf/////////" + 
+             "B4KAgIDg////f//////v////fxhIZWxsbyBXb3JsZCE=");
+
 
 println(decoder.readFloat());
 println(decoder.readFloat());
@@ -17,3 +19,16 @@ println(decoder.readInt());
 println(decoder.readInt());
 println(decoder.readInt());
 println(decoder.readInt());
+
+println(decoder.readLong());
+println(decoder.readLong());
+println(decoder.readLong());
+println(decoder.readLong());
+println(decoder.readLong());
+println(decoder.readLong());
+
+var bytes = decoder.readBytes();
+for (var i = 0; i < bytes.length; i++) {
+    print(String.fromCharCode(bytes[i]));
+}
+println("");
