@@ -1,6 +1,6 @@
 var AVRO = {};
 
-(function() {
+(function(NS) {
 
     var base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     var decodeLookup = {};
@@ -131,7 +131,7 @@ var AVRO = {};
     };
 
     // Create a Avro binary decoder where the binary data is base64 encoded
-    AVRO.Base64BinaryDecoder = function() {
+    NS.Base64BinaryDecoder = function() {
         var reader = Base64ByteReader();
         var checkedReadByte = function() {
             var b = reader.readByte();
@@ -139,6 +139,17 @@ var AVRO = {};
                 throw "Insufficient input byte for decode."
             }
             return b;
+        }
+        var toPaddedHex = function(n) {
+            var hex = "";
+            var b;
+            var i;
+            for (i = 0; i < 4; i++) {
+                b = ((n >>> (i * 8)) & 0x0ff).toString(16);
+                hex = (b.length == 1 ? "0" + b : b) + hex;
+            }
+
+            return hex;
         }
 
         return {
@@ -152,14 +163,13 @@ var AVRO = {};
                 return checkedReadByte() == 1 ? true : false;
             },
             readInt : function() {
-                var n;
                 var i;
                 var b = checkedReadByte();
-                n = b & 0x7f;
+                var n = b & 0x7f;
 
                 for (i = 1; i <= 4 && b > 0x7f; i++) {
                     b = checkedReadByte();
-                    n ^= (b & 0x7f) << (7 * i);
+                    n |= (b & 0x7f) << (7 * i);
                 }
 
                 if (b > 0x7f) {
@@ -168,9 +178,49 @@ var AVRO = {};
 
                 return (n >>> 1) ^ -(n & 1);
             },
+
+            /**
+             *  Long with value > 52 bits cannot be resolved precisely due to
+             *  JS use double floating point as the only number representation.
+             */
             readLong : function() {
-                // TB implement
+                var i;
+                var b = checkedReadByte();
+                var sign = ((b & 0x01) == 0) ? 1 : -1;
+                var n = b & 0x7f;
+                var low;
+
+                for (i = 1; i <= 4 && b > 0x7f; i++) {
+                    b = checkedReadByte();
+                    n |= (b & 0x7f) << (7 * i);
+                }
+
+                // Encoded value is within 32 bit range
+                if (i <= 4 || b <= 0x0f) {
+                    return (n >>> 1) ^ -(n & 1);
+                }
+
+                // More than 32 bits
+                low = n >>> 1;
+                n = (b >> 4) & 0x07;
+                for (i = 0; i < 5 && b > 0x7f; i++) {
+                    b = checkedReadByte();
+                    n |= (b & 0x7f) << (7 * i + 3);
+                }
+
+                low |= (n & 0x01) << 31;
+                n >>>= 1;
+
+                // Two's complement'
+                if (sign > 0) {
+                    return ("0x" + toPaddedHex(n) + toPaddedHex(low)) * 1;
+                } else {
+                    return ("0x" + toPaddedHex(n) + toPaddedHex(low)) * -1 - 1;
+                }
             },
+
+            // Not able to get the floating point back precisely due to
+            // noise introduced in JS floating arithmetic
             readFloat : function() {
                 var b;
                 var value = 0;
@@ -190,8 +240,6 @@ var AVRO = {};
                     return Number.NEGATIVE_INFINITY;
                 }
 
-                // Not able to get the floating point back precisely due to
-                // noise introduced in JS floating arithmetic
                 var sign = ((value >> 31) << 1) + 1;
                 var expo = ((value & 0x7f800000) >> 23) & 0xff;
                 var mant = value & 0x007fffff;
@@ -203,19 +251,29 @@ var AVRO = {};
                 // TB implement
             },
             readBytes : function() {
-
+                var len = this.readLong();
+                var res = [];
+                while (len > 0) {
+                    res.push(checkedReadByte());
+                    len--;
+                }
+                return res;
             },
             readString : function() {
                 
             },
-            readFixed : function(size) {
-
+            readFixed : function(result) {
+                var len = result.length;
+                var i;
+                for (i = 0; i < len; i++) {
+                    result[i] = checkedReadByte();
+                }
             },
             readEnum : function() {
-
+                return this.readInt();
             },
             readIndex : function() {
-
+                return this.readInt();
             },
             readArrayStart : function() {
 
@@ -234,11 +292,11 @@ var AVRO = {};
 
 
     // Create a reader that decode according to the provided schema
-    AVRO.DatumReader = function(schema) {
+    NS.DatumReader = function(schema, decoder) {
         return {
             read : function() {
                 
             }
         };
     };
-})();
+})(AVRO);
