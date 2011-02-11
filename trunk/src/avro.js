@@ -133,6 +133,13 @@ var AVRO = {};
     // Create a Avro binary decoder where the binary data is base64 encoded
     AVRO.Base64BinaryDecoder = function() {
         var reader = Base64ByteReader();
+        var checkedReadByte = function() {
+            var b = reader.readByte();
+            if (b == -1) {
+                throw "Insufficient input byte for decode."
+            }
+            return b;
+        }
 
         return {
             feed : function(base64Str) {
@@ -142,26 +149,16 @@ var AVRO = {};
                 // Do nothing
             },
             readBoolean : function() {
-                var b = reader.readByte();
-                if (b == -1) {
-                    throw "Insufficient input for decode boolean.";
-                }
-                return b == 1 ? true : false;
+                return checkedReadByte() == 1 ? true : false;
             },
             readInt : function() {
                 var n;
                 var i;
-                var b = reader.readByte();
-                if (b == -1) {
-                    throw "Insufficient input for decode int.";
-                }
+                var b = checkedReadByte();
                 n = b & 0x7f;
 
                 for (i = 1; i <= 4 && b > 0x7f; i++) {
-                    b = reader.readByte();
-                    if (b == -1) {
-                        throw "Insufficient input for decode int.";
-                    }
+                    b = checkedReadByte();
                     n ^= (b & 0x7f) << (7 * i);
                 }
 
@@ -179,10 +176,7 @@ var AVRO = {};
                 var value = 0;
                 var i;
                 for (i = 0; i < 4; i++) {
-                    b = reader.readByte();
-                    if (b == -1) {
-                        throw "Insufficient input for decode float.";
-                    }
+                    b = checkedReadByte();
                     value += b * Math.pow(2, i << 3);
                 }
 
