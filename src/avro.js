@@ -130,10 +130,121 @@ var AVRO = {};
         };
     };
 
+    // Create a Avro binary decoder where the binary data is base64 encoded
+    AVRO.Base64BinaryDecoder = function() {
+        var reader = Base64ByteReader();
 
-    AVRO.decode = function(data, schema) {
-    }
+        return {
+            feed : function(base64Str) {
+                reader.update(base64Str);
+            },
+            readNull : function() {
+                // Do nothing
+            },
+            readBoolean : function() {
+                var b = reader.readByte();
+                if (b == -1) {
+                    throw "Insufficient input for decode boolean.";
+                }
+                return b == 1 ? true : false;
+            },
+            readInt : function() {
+                var n;
+                var i;
+                var b = reader.readByte();
+                if (b == -1) {
+                    throw "Insufficient input for decode int.";
+                }
+                n = b & 0x7f;
 
-    AVRO.encode = function(data, schema) {
-    }
+                for (i = 1; i <= 4 && b > 0x7f; i++) {
+                    b = reader.readByte();
+                    if (b == -1) {
+                        throw "Insufficient input for decode int.";
+                    }
+                    n ^= (b & 0x7f) << (7 * i);
+                }
+
+                if (b > 0x7f) {
+                    throw "Invalid int encoding.";
+                }
+
+                return (n >>> 1) ^ -(n & 1);
+            },
+            readLong : function() {
+                // TB implement
+            },
+            readFloat : function() {
+                var b;
+                var value = 0;
+                var i;
+                for (i = 0; i < 4; i++) {
+                    b = reader.readByte();
+                    if (b == -1) {
+                        throw "Insufficient input for decode float.";
+                    }
+                    value += b * Math.pow(2, i << 3);
+                }
+
+                if (value == 0x7fc00000) {
+                    return Number.NaN;
+                }
+                if (value == 0x7f800000) {
+                    return Number.POSITIVE_INFINITY;
+                }
+                if (value == 0xff800000) {
+                    return Number.NEGATIVE_INFINITY;
+                }
+
+                // Not able to get the floating point back precisely due to
+                // noise introduced in JS floating arithmetic
+                var sign = ((value >> 31) << 1) + 1;
+                var expo = ((value & 0x7f800000) >> 23) & 0xff;
+                var mant = value & 0x007fffff;
+
+                expo ? ( expo -= 127, mant |= 0x00800000 ) : expo = -126;
+                return sign * mant * Math.pow(2, expo - 23);
+            },
+            readDouble : function() {
+                // TB implement
+            },
+            readBytes : function() {
+
+            },
+            readString : function() {
+                
+            },
+            readFixed : function(size) {
+
+            },
+            readEnum : function() {
+
+            },
+            readIndex : function() {
+
+            },
+            readArrayStart : function() {
+
+            },
+            arrayNext : function() {
+
+            },
+            readMapStart : function() {
+
+            },
+            mapNext : function() {
+                
+            }
+        }
+    };
+
+
+    // Create a reader that decode according to the provided schema
+    AVRO.DatumReader = function(schema) {
+        return {
+            read : function() {
+                
+            }
+        };
+    };
 })();
