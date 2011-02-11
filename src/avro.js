@@ -55,15 +55,17 @@ var AVRO = {};
                 if (last && buffer.length != 0) {
                     encodeBuffer();
                 }
-                return output;
+                var res = output;
+                output = "";
+                return res;
             }
         };
     };
 
-    var Base64ByteReader = function(source) {
+    var Base64ByteReader = function() {
         var buffer = [];
         var srcIdx = 0;
-        var len = source.length;
+        var source = "";
 
         // Private method of Base64ByteReader
         var fillBuffer = function() {
@@ -71,6 +73,7 @@ var AVRO = {};
             var i;
             var enc;
             var code;
+            var len = source.length;
 
             for (i = 0; srcIdx < len && i < 4; srcIdx++, i++) {
                 enc = source.charAt(srcIdx);
@@ -107,6 +110,12 @@ var AVRO = {};
 
         // Public interface supported by Base64ByteReader
         return {
+
+            // Feed in base64 encode string
+            update : function(base64Str) {
+                source += base64Str;
+            },
+
             // Return the next byte as integer
             readByte : function() {
                 if (buffer.length <= 0) {
