@@ -2,9 +2,11 @@ package driver;
 
 import java.io.File;
 import java.io.FileFilter;
-import java.io.FileReader;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.Charset;
 import java.util.Iterator;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
@@ -90,7 +92,7 @@ public class Driver {
                     if (!files.hasNext()) {
                         return -1;
                     }
-                    currentReader = new FileReader(files.next());
+                    currentReader = new InputStreamReader(new FileInputStream(files.next()), Charset.forName("UTF-8"));
                 }
 
                 readLen = currentReader.read(cbuf, off, len);
