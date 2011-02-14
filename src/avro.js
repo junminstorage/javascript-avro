@@ -140,15 +140,12 @@ var AVRO = {};
             } else {
                 // Mutlibytes
                 if (bytes[i] >= 0xc0 && bytes[i] < 0xe0) {              // 2 bytes
-                    code = (bytes[i] & 0x1f) << 6;
-                    i++;
-                    code |= (bytes[i] & 0x3f);
+                    code = ((bytes[i++] & 0x1f) << 6) |
+                            (bytes[i] & 0x3f);
                 } else if (bytes[i] >= 0xe0 && bytes[i] < 0xf0) {       // 3 bytes
-                    code = (bytes[i] & 0x0f) << 12;
-                    i++;
-                    code |= (bytes[i] & 0x3f) << 6;
-                    i++;
-                    code |= (bytes[i] & 0x3f);
+                    code = ((bytes[i++] & 0x0f) << 12) |
+                           ((bytes[i++] & 0x3f) << 6)  |
+                            (bytes[i] & 0x3f);
                 } else {
                     // JS cannot represent 4 bytes UTF8, as JS use UCS2 (2 btyes)
                     // Simply skip the character
@@ -170,7 +167,7 @@ var AVRO = {};
                 throw "Insufficient input byte for decode."
             }
             return b;
-        }
+        };
         var toPaddedHex = function(n) {
             var hex = "";
             var b;
@@ -181,7 +178,16 @@ var AVRO = {};
             }
 
             return hex;
-        }
+        };
+        // Private method for reading count for array and map
+        var readCount = function(decoder) {
+            var count = decoder.readLong();
+            if (count < 0) {
+                readLong();
+                count = -count;
+            }
+            return count;
+        };
 
         return {
             feed : function(base64Str) {
@@ -307,16 +313,16 @@ var AVRO = {};
                 return this.readInt();
             },
             readArrayStart : function() {
-
+                return readCount(this);
             },
             arrayNext : function() {
-
+                return readCount(this);
             },
             readMapStart : function() {
-
+                return readCount(this);
             },
             mapNext : function() {
-                
+                return readCount(this);
             }
         }
     };
