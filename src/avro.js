@@ -130,34 +130,6 @@ var AVRO = {};
         };
     };
 
-    var decodeUtf8 = function(bytes) {
-        var len = bytes.length;
-        var result = "";
-        var code;
-        for (i = 0; i < len; i++) {
-            if (bytes[i] <= 0x7f) {
-                result += String.fromCharCode(bytes[i]);
-            } else {
-                // Mutlibytes
-                if (bytes[i] >= 0xc0 && bytes[i] < 0xe0) {              // 2 bytes
-                    code = ((bytes[i++] & 0x1f) << 6) |
-                            (bytes[i] & 0x3f);
-                } else if (bytes[i] >= 0xe0 && bytes[i] < 0xf0) {       // 3 bytes
-                    code = ((bytes[i++] & 0x0f) << 12) |
-                           ((bytes[i++] & 0x3f) << 6)  |
-                            (bytes[i] & 0x3f);
-                } else {
-                    // JS cannot represent 4 bytes UTF8, as JS use UCS2 (2 btyes)
-                    // Simply skip the character
-                    i += 3;
-                    continue;
-                }
-                result += String.fromCharCode(code);
-            }
-        }
-        return result;
-    };
-
     // Create a Avro binary decoder where the binary data is base64 encoded
     NS.Base64BinaryDecoder = function() {
         var reader = Base64ByteReader();
@@ -183,10 +155,37 @@ var AVRO = {};
         var readCount = function(decoder) {
             var count = decoder.readLong();
             if (count < 0) {
-                readLong();
+                decoder.readLong();
                 count = -count;
             }
             return count;
+        };
+        var decodeUtf8 = function(bytes) {
+            var len = bytes.length;
+            var result = "";
+            var code;
+            for (i = 0; i < len; i++) {
+                if (bytes[i] <= 0x7f) {
+                    result += String.fromCharCode(bytes[i]);
+                } else {
+                    // Mutlibytes
+                    if (bytes[i] >= 0xc0 && bytes[i] < 0xe0) {              // 2 bytes
+                        code = ((bytes[i++] & 0x1f) << 6) |
+                                (bytes[i] & 0x3f);
+                    } else if (bytes[i] >= 0xe0 && bytes[i] < 0xf0) {       // 3 bytes
+                        code = ((bytes[i++] & 0x0f) << 12) |
+                               ((bytes[i++] & 0x3f) << 6)  |
+                                (bytes[i] & 0x3f);
+                    } else {
+                        // JS cannot represent 4 bytes UTF8, as JS use UCS2 (2 btyes)
+                        // Simply skip the character
+                        i += 3;
+                        continue;
+                    }
+                    result += String.fromCharCode(code);
+                }
+            }
+            return result;
         };
 
         return {
