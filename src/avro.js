@@ -2,6 +2,7 @@ var AVRO = {};
 
 (function(NS) {
 
+    var strictMode = false;
     var base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     var decodeLookup = {};
 
@@ -129,6 +130,10 @@ var AVRO = {};
             }
         };
     };
+    
+    NS.setStrictMode = function(strict) {
+        strictMode = strict;
+    };
 
     // Create a Avro binary decoder where the binary data is base64 encoded
     NS.Base64BinaryDecoder = function() {
@@ -215,10 +220,6 @@ var AVRO = {};
                 return (n >>> 1) ^ -(n & 1);
             },
 
-            /**
-             *  Long with value > 52 bits cannot be resolved precisely due to
-             *  JS use double floating point as the only number representation.
-             */
             readLong : function() {
                 var i;
                 var b = checkedReadByte();
@@ -243,10 +244,22 @@ var AVRO = {};
                     b = checkedReadByte();
                     n |= (b & 0x7f) << (7 * i + 3);
                 }
+                
+                if (b > 0x7f) {
+                    throw "Invalid long encoding";
+                }
 
                 low |= (n & 0x01) << 31;
                 n >>>= 1;
+                
+                if (strictMode) {
+                    return [low, n];
+                }
 
+                /*
+                 *  Long with value > 52 bits cannot be resolved precisely due to
+                 *  JS use double floating point as the only number representation.
+                 */
                 // Two's complement'
                 if (sign > 0) {
                     return ("0x" + toPaddedHex(n) + toPaddedHex(low)) * 1;
@@ -255,27 +268,31 @@ var AVRO = {};
                 }
             },
 
-            // Not able to get the floating point back precisely due to
-            // noise introduced in JS floating arithmetic
             readFloat : function() {
                 var b;
                 var value = 0;
                 var i;
                 for (i = 0; i < 4; i++) {
                     b = checkedReadByte();
-                    value += b * Math.pow(2, i << 3);
+                    value |= (b << (i * 8));
                 }
 
-                if (value == 0x7fc00000) {
+                if (strictMode) {    // In strictMode, return the 32 bit float
+                    return value;
+                }
+
+                if ((value ^ 0x7fc00000) == 0) {
                     return Number.NaN;
                 }
-                if (value == 0x7f800000) {
+                if ((value ^ 0x7f800000) == 0) {
                     return Number.POSITIVE_INFINITY;
                 }
-                if (value == 0xff800000) {
+                if ((value ^ 0xff800000) == 0) {
                     return Number.NEGATIVE_INFINITY;
                 }
-
+                
+                // Not able to get the floating point back precisely due to
+                // noise introduced in JS floating arithmetic
                 var sign = ((value >> 31) << 1) + 1;
                 var expo = ((value & 0x7f800000) >> 23) & 0xff;
                 var mant = value & 0x007fffff;
