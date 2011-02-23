@@ -240,9 +240,9 @@ var AVRO = {};
                 // More than 32 bits
                 low = n >>> 1;
                 n = (b >> 4) & 0x07;
-                for (i = 0; i < 5 && b > 0x7f; i++) {
+                for (i = 3; i < 32 && b > 0x7f; i += 7) {
                     b = checkedReadByte();
-                    n |= (b & 0x7f) << (7 * i + 3);
+                    n |= (b & 0x7f) << i;
                 }
                 
                 if (b > 0x7f) {
