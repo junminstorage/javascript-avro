@@ -272,9 +272,9 @@ var AVRO = {};
                 var b;
                 var value = 0;
                 var i;
-                for (i = 0; i < 4; i++) {
+                for (i = 0; i < 32; i += 8) {
                     b = checkedReadByte();
-                    value |= (b << (i * 8));
+                    value |= (b << i);
                 }
 
                 if (strictMode) {    // In strictMode, return the 32 bit float
