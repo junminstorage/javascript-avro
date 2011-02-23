@@ -208,9 +208,9 @@ var AVRO = {};
                 var b = checkedReadByte();
                 var n = b & 0x7f;
 
-                for (i = 1; i <= 4 && b > 0x7f; i++) {
+                for (i = 7; i <= 28 && b > 0x7f; i += 7) {
                     b = checkedReadByte();
-                    n |= (b & 0x7f) << (7 * i);
+                    n |= (b & 0x7f) << i;
                 }
 
                 if (b > 0x7f) {
@@ -227,13 +227,13 @@ var AVRO = {};
                 var n = b & 0x7f;
                 var low;
 
-                for (i = 1; i <= 4 && b > 0x7f; i++) {
+                for (i = 7; i <= 28 && b > 0x7f; i += 7) {
                     b = checkedReadByte();
-                    n |= (b & 0x7f) << (7 * i);
+                    n |= (b & 0x7f) << i;
                 }
 
                 // Encoded value is within 32 bit range
-                if (i <= 4 || b <= 0x0f) {
+                if (i <= 28 || b <= 0x0f) {
                     return (n >>> 1) ^ -(n & 1);
                 }
 
