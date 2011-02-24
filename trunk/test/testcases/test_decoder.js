@@ -9,15 +9,25 @@ importClass(org.apache.commons.codec.binary.Base64);
     var generateTest = function() {
         var byteOut = new ByteArrayOutputStream();
         var encoder = new BinaryEncoder(byteOut);
-
+        
+        encoder.writeDouble(Double.POSITIVE_INFINITY);
+        encoder.writeDouble(Double.NEGATIVE_INFINITY);
+        encoder.writeDouble(Double.valueOf("0.0").doubleValue());
+        encoder.writeDouble(Double.valueOf("-0.0").doubleValue());
+        encoder.writeDouble(Double.valueOf("6547.23456").doubleValue());
+        encoder.writeDouble(Double.valueOf("0.000452").doubleValue());
+        
         encoder.writeFloat(Float.POSITIVE_INFINITY);
         encoder.writeFloat(Float.NEGATIVE_INFINITY);
         encoder.writeFloat(Float.NaN);
         encoder.writeFloat(Float.MAX_VALUE);
         encoder.writeFloat(Float.MIN_VALUE);
         encoder.writeFloat(Float.MIN_NORMAL);
+        encoder.writeFloat(Float.valueOf("0.0").floatValue());
+        encoder.writeFloat(Float.valueOf("-0.0").floatValue());
         encoder.writeFloat(Float.valueOf("1.0").floatValue());
-        encoder.writeFloat(Float.valueOf("3.25").floatValue());
+        encoder.writeFloat(Float.valueOf("0.25").floatValue());
+        encoder.writeFloat(Float.valueOf("-12.662").floatValue());
 
         encoder.writeBoolean(true);
         encoder.writeBoolean(false);
@@ -53,6 +63,16 @@ importClass(org.apache.commons.codec.binary.Base64);
     
     decoder.feed(generateTest());
     
+    println(decoder.readDouble());
+    println(decoder.readDouble());
+    println(decoder.readDouble());
+    println(decoder.readDouble());
+    println(decoder.readDouble());
+    println(decoder.readDouble());
+    
+    println(decoder.readFloat());
+    println(decoder.readFloat());
+    println(decoder.readFloat());
     println(decoder.readFloat());
     println(decoder.readFloat());
     println(decoder.readFloat());
