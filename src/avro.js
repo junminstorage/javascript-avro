@@ -156,6 +156,17 @@ var AVRO = {};
 
             return hex;
         };
+        // Read 32 bits little-endian value
+        var read32 = function() {
+            var b;
+            var v = 0;
+            var i;
+            for (i = 0; i < 32; i += 8) {
+                b = checkedReadByte();
+                v |= (b << i);
+            }
+            return v;
+        };
         // Private method for reading count for array and map
         var readCount = function(decoder) {
             var count = decoder.readLong();
@@ -269,18 +280,15 @@ var AVRO = {};
             },
 
             readFloat : function() {
-                var b;
-                var value = 0;
-                var i;
-                for (i = 0; i < 32; i += 8) {
-                    b = checkedReadByte();
-                    value |= (b << i);
-                }
+                var value = read32();
 
                 if (strictMode) {    // In strictMode, return the 32 bit float
                     return value;
                 }
-
+                
+                if ((value & 0x7fffffff) == 0) {
+                    return 0;
+                }
                 if ((value ^ 0x7fc00000) == 0) {
                     return Number.NaN;
                 }
@@ -294,14 +302,38 @@ var AVRO = {};
                 // Not able to get the floating point back precisely due to
                 // noise introduced in JS floating arithmetic
                 var sign = ((value >> 31) << 1) + 1;
-                var expo = ((value & 0x7f800000) >> 23) & 0xff;
+                var expo = (value & 0x7f800000) >> 23;
                 var mant = value & 0x007fffff;
 
                 expo ? ( expo -= 127, mant |= 0x00800000 ) : expo = -126;
                 return sign * mant * Math.pow(2, expo - 23);
             },
             readDouble : function() {
-                // TB implement
+                var low = read32();
+                var high = read32();
+                
+                if (strictMode) {
+                    return [low, high];
+                }
+                
+                if (low == 0) {
+                    if ((high ^ 0x7ff00000) == 0) {
+                        return Number.POSITIVE_INFINITY;
+                    }
+                    if ((high ^ 0xfff00000) == 0) {
+                        return Number.NEGATIVE_INFINITY;
+                    }
+                    if ((high & 0x7fffffff) == 0) {
+                        return 0;
+                    }
+                }
+                
+                var sign = ((high >> 31) << 1) + 1;
+                var expo = (high & 0x7ff00000) >> 20;
+                var mant = (low + (high & 0x000fffff) * Math.pow(2, 32)) * Math.pow(2, -52);
+                
+                expo ? (expo -= 1023, mant++): expo = -1022;
+                return sign * mant * Math.pow(2, expo);
             },
             readBytes : function() {
                 var len = this.readLong();
