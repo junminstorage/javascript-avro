@@ -12,10 +12,18 @@ importClass(org.apache.commons.codec.binary.Base64);
         
         encoder.writeDouble(Double.POSITIVE_INFINITY);
         encoder.writeDouble(Double.NEGATIVE_INFINITY);
+        encoder.writeDouble(Double.NaN);
+        encoder.writeDouble(Double.MAX_VALUE);
+        encoder.writeDouble(Double.MIN_VALUE);
+        encoder.writeDouble(Double.MIN_NORMAL);
         encoder.writeDouble(Double.valueOf("0.0").doubleValue());
         encoder.writeDouble(Double.valueOf("-0.0").doubleValue());
         encoder.writeDouble(Double.valueOf("6547.23456").doubleValue());
         encoder.writeDouble(Double.valueOf("0.000452").doubleValue());
+        
+        System.out.println(Double.MAX_VALUE);
+        System.out.println(Double.MIN_VALUE);
+        System.out.println(Double.MIN_NORMAL);
         
         encoder.writeFloat(Float.POSITIVE_INFINITY);
         encoder.writeFloat(Float.NEGATIVE_INFINITY);
@@ -28,7 +36,7 @@ importClass(org.apache.commons.codec.binary.Base64);
         encoder.writeFloat(Float.valueOf("1.0").floatValue());
         encoder.writeFloat(Float.valueOf("0.25").floatValue());
         encoder.writeFloat(Float.valueOf("-12.662").floatValue());
-
+        
         encoder.writeBoolean(true);
         encoder.writeBoolean(false);
 
@@ -63,6 +71,10 @@ importClass(org.apache.commons.codec.binary.Base64);
     
     decoder.feed(generateTest());
     
+    println(decoder.readDouble());
+    println(decoder.readDouble());
+    println(decoder.readDouble());
+    println(decoder.readDouble());
     println(decoder.readDouble());
     println(decoder.readDouble());
     println(decoder.readDouble());
