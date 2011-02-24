@@ -21,10 +21,6 @@ importClass(org.apache.commons.codec.binary.Base64);
         encoder.writeDouble(Double.valueOf("6547.23456").doubleValue());
         encoder.writeDouble(Double.valueOf("0.000452").doubleValue());
         
-        System.out.println(Double.MAX_VALUE);
-        System.out.println(Double.MIN_VALUE);
-        System.out.println(Double.MIN_NORMAL);
-        
         encoder.writeFloat(Float.POSITIVE_INFINITY);
         encoder.writeFloat(Float.NEGATIVE_INFINITY);
         encoder.writeFloat(Float.NaN);
