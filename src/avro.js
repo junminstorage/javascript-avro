@@ -5,8 +5,9 @@ var AVRO = {};
     var strictMode = false;
     var base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
     var decodeLookup = {};
+    var i = 0;
 
-    for (var i = 0; i < 64; i++) {
+    for (i = 0; i < 64; i++) {
         decodeLookup[base64Chars.charAt(i)] = i;
     }
 
@@ -34,7 +35,7 @@ var AVRO = {};
                     break;
                 }
             }
-            if (buffer.length != 3) {
+            if (buffer.length !== 3) {
                 output += base64Chars.charAt(code);
                 for (i = 3; i > buffer.length; i--) {
                     output += "=";
@@ -47,13 +48,13 @@ var AVRO = {};
         return {
             writeByte : function(b) {
                 buffer.push(b);
-                if (buffer.length == 3) {
+                if (buffer.length === 3) {
                     encodeBuffer();
                 }
             },
 
             getEncoded : function(last) {
-                if (last && buffer.length != 0) {
+                if (last && buffer.length !== 0) {
                     encodeBuffer();
                 }
                 var res = output;
@@ -78,33 +79,32 @@ var AVRO = {};
 
             for (i = 0; srcIdx < len && i < 4; srcIdx++, i++) {
                 enc = source.charAt(srcIdx);
-                if (enc == '=') {
+                if (enc === '=') {
                     buffer.pop();
                     break;
                 }
                 // Skip any unknown character
-                if (!decodeLookup.hasOwnProperty(enc)) {
-                    i--;
-                    continue;
-                }
-                
-                code = decodeLookup[enc];
+                if (decodeLookup.hasOwnProperty(enc)) {                
+                    code = decodeLookup[enc];
 
-                switch (i) {
-                    case 0:
-                        buffer[0] = code << 2;
-                    break;
-                    case 1:
-                        buffer[0] = buffer[0] | (code >> 4 & 0x03);
-                        buffer[1] = (code & 0x0F) << 4;
-                    break;
-                    case 2:
-                        buffer[1] = buffer[1] | (code >> 2 & 0x0F);
-                        buffer[2] = (code & 0x03) << 6;
-                    break;
-                    case 3:
-                        buffer[2] = buffer[2] | (code & 0x003F);
-                    break;
+                    switch (i) {
+                        case 0:
+                            buffer[0] = code << 2;
+                        break;
+                        case 1:
+                            buffer[0] = buffer[0] | (code >> 4 & 0x03);
+                            buffer[1] = (code & 0x0F) << 4;
+                        break;
+                        case 2:
+                            buffer[1] = buffer[1] | (code >> 2 & 0x0F);
+                            buffer[2] = (code & 0x03) << 6;
+                        break;
+                        case 3:
+                            buffer[2] = buffer[2] | (code & 0x003F);
+                        break;
+                    }
+                } else {
+                    i--;
                 }
             }
         };
@@ -140,8 +140,8 @@ var AVRO = {};
         var reader = Base64ByteReader();
         var checkedReadByte = function() {
             var b = reader.readByte();
-            if (b == -1) {
-                throw "Insufficient input byte for decode."
+            if (b === -1) {
+                throw "Insufficient input byte for decode.";
             }
             return b;
         };
@@ -151,7 +151,7 @@ var AVRO = {};
             var i;
             for (i = 0; i < 32; i += 8) {
                 b = ((n >>> (i)) & 0x0ff).toString(16);
-                hex = (b.length == 1 ? "0" + b : b) + hex;
+                hex = (b.length === 1 ? "0" + b : b) + hex;
             }
 
             return hex;
@@ -212,7 +212,7 @@ var AVRO = {};
                 // Do nothing
             },
             readBoolean : function() {
-                return checkedReadByte() == 1 ? true : false;
+                return checkedReadByte() === 1 ? true : false;
             },
             readInt : function() {
                 var i;
@@ -234,7 +234,7 @@ var AVRO = {};
             readLong : function() {
                 var i;
                 var b = checkedReadByte();
-                var sign = ((b & 0x01) == 0) ? 1 : -1;
+                var sign = ((b & 0x01) === 0) ? 1 : -1;
                 var n = b & 0x7f;
                 var low;
 
@@ -272,11 +272,11 @@ var AVRO = {};
                  *  JS use double floating point as the only number representation.
                  */
                 // Two's complement'
-                if (sign > 0) {
-                    return ("0x" + toPaddedHex(n) + toPaddedHex(low)) * 1;
-                } else {
-                    return ("0x" + toPaddedHex(n) + toPaddedHex(low)) * -1 - 1;
+                b = ("0x" + toPaddedHex(n) + toPaddedHex(low)) * sign;
+                if (sign < 0) {
+                    b--;
                 }
+                return b;
             },
 
             readFloat : function() {
@@ -292,14 +292,14 @@ var AVRO = {};
                 var expo = (value & 0x7f800000) >> 23;
                 var mant = value & 0x007fffff;
                 
-                if (expo == 0) {
-                    if (mant == 0) {
+                if (expo === 0) {
+                    if (mant === 0) {
                         return 0;
                     }
                     expo = -126;
                 } else {
-                    if (expo == 0xff) {
-                        return mant == 0 ? (sign == 1 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY) : Number.NaN;
+                    if (expo === 0xff) {
+                        return mant === 0 ? (sign === 1 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY) : Number.NaN;
                     }
                     expo -= 127;
                     mant |= 0x00800000;
@@ -320,23 +320,23 @@ var AVRO = {};
                 var mantHigh = high & 0x000fffff;
                 var mant = 0;                
 
-                if (expo == 0) {
-                    if (low == 0 && mantHigh == 0) {
+                if (expo === 0) {
+                    if (low === 0 && mantHigh === 0) {
                         return 0;
                     }
-                    if (low == 1 && mantHigh == 0) {
+                    if (low === 1 && mantHigh === 0) {
                         return Number.MIN_VALUE;
                     }
                     expo = -1022;
                 } else {
-                    if (expo == 0x7ff) {
-                        if (low == 0 && mantHigh == 0) {
-                            return sign == 1 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+                    if (expo === 0x7ff) {
+                        if (low === 0 && mantHigh === 0) {
+                            return sign === 1 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
                         } else {
                             return Number.NaN;
                         }
                     }
-                    if ((high ^ 0x7fefffff) == 0 && (low ^ 0xffffffff) == 0) {
+                    if ((high ^ 0x7fefffff) === 0 && (low ^ 0xffffffff) === 0) {
                         return Number.MAX_VALUE;
                     }
                     expo -= 1023;
@@ -383,7 +383,7 @@ var AVRO = {};
             mapNext : function() {
                 return readCount(this);
             }
-        }
+        };
     };
 
 
@@ -395,4 +395,4 @@ var AVRO = {};
             }
         };
     };
-})(AVRO);
+}(AVRO));
