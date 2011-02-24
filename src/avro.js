@@ -286,26 +286,25 @@ var AVRO = {};
                     return value;
                 }
                 
-                if ((value & 0x7fffffff) == 0) {
-                    return 0;
-                }
-                if ((value ^ 0x7fc00000) == 0) {
-                    return Number.NaN;
-                }
-                if ((value ^ 0x7f800000) == 0) {
-                    return Number.POSITIVE_INFINITY;
-                }
-                if ((value ^ 0xff800000) == 0) {
-                    return Number.NEGATIVE_INFINITY;
-                }
-                
                 // Not able to get the floating point back precisely due to
                 // noise introduced in JS floating arithmetic
                 var sign = ((value >> 31) << 1) + 1;
                 var expo = (value & 0x7f800000) >> 23;
                 var mant = value & 0x007fffff;
+                
+                if (expo == 0) {
+                    if (mant == 0) {
+                        return 0;
+                    }
+                    expo = -126;
+                } else {
+                    if (expo == 0xff) {
+                        return mant == 0 ? (sign == 1 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY) : Number.NaN;
+                    }
+                    expo -= 127;
+                    mant |= 0x00800000;
+                }
 
-                expo ? ( expo -= 127, mant |= 0x00800000 ) : expo = -126;
                 return sign * mant * Math.pow(2, expo - 23);
             },
             readDouble : function() {
@@ -315,24 +314,36 @@ var AVRO = {};
                 if (strictMode) {
                     return [low, high];
                 }
-                
-                if (low == 0) {
-                    if ((high ^ 0x7ff00000) == 0) {
-                        return Number.POSITIVE_INFINITY;
-                    }
-                    if ((high ^ 0xfff00000) == 0) {
-                        return Number.NEGATIVE_INFINITY;
-                    }
-                    if ((high & 0x7fffffff) == 0) {
-                        return 0;
-                    }
-                }
-                
+
                 var sign = ((high >> 31) << 1) + 1;
                 var expo = (high & 0x7ff00000) >> 20;
-                var mant = (low + (high & 0x000fffff) * Math.pow(2, 32)) * Math.pow(2, -52);
-                
-                expo ? (expo -= 1023, mant++): expo = -1022;
+                var mantHigh = high & 0x000fffff;
+                var mant = 0;                
+
+                if (expo == 0) {
+                    if (low == 0 && mantHigh == 0) {
+                        return 0;
+                    }
+                    if (low == 1 && mantHigh == 0) {
+                        return Number.MIN_VALUE;
+                    }
+                    expo = -1022;
+                } else {
+                    if (expo == 0x7ff) {
+                        if (low == 0 && mantHigh == 0) {
+                            return sign == 1 ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY;
+                        } else {
+                            return Number.NaN;
+                        }
+                    }
+                    if ((high ^ 0x7fefffff) == 0 && (low ^ 0xffffffff) == 0) {
+                        return Number.MAX_VALUE;
+                    }
+                    expo -= 1023;
+                    mant = 1;
+                }
+               
+                mant += (low + (high & 0x000fffff) * Math.pow(2, 32)) * Math.pow(2, -52);
                 return sign * mant * Math.pow(2, expo);
             },
             readBytes : function() {
