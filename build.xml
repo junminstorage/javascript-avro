@@ -28,6 +28,7 @@
         <javac srcdir="${test}" destdir="${test-build}" includeAntRuntime="false" debug="true" debuglevel="lines,source"/>
     </target>
 
+	<!--
     <target name="test" depends="test-compile">
         <java classname="driver/Driver" fork="true">
             <arg line="${build}/avro-min.js ${test}/testcases" />
@@ -39,6 +40,10 @@
             </classpath>
         </java>
     </target>
+	-->
+	<target name="test" depends="test-compile">
+		<ant antfile="${test}/build.xml" target="run-all-tests" inheritRefs="true" inheritAll="true" />
+	</target>
 
     <target name="dist" depends="test">
     </target>
