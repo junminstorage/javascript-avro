@@ -18,8 +18,8 @@ importClass(org.apache.commons.codec.binary.Base64);
         encoder.writeDouble(Double.MIN_NORMAL);
         encoder.writeDouble(Double.valueOf("0.0").doubleValue());
         encoder.writeDouble(Double.valueOf("-0.0").doubleValue());
-        encoder.writeDouble(Double.valueOf("6547.23456").doubleValue());
-        encoder.writeDouble(Double.valueOf("0.000452").doubleValue());
+        encoder.writeDouble(Double.valueOf("6547.3333333").doubleValue());
+        encoder.writeDouble(Double.valueOf("-0.000452").doubleValue());
         
         encoder.writeFloat(Float.POSITIVE_INFINITY);
         encoder.writeFloat(Float.NEGATIVE_INFINITY);
@@ -49,8 +49,8 @@ importClass(org.apache.commons.codec.binary.Base64);
         encoder.writeLong(BigInteger.valueOf(Integer.MIN_VALUE).subtract(BigInteger.valueOf(1)).longValue());
         encoder.writeLong(BigInteger.valueOf(Long.MAX_VALUE).divide(BigInteger.valueOf(4096)).longValue());
         encoder.writeLong(BigInteger.valueOf(Long.MIN_VALUE).divide(BigInteger.valueOf(4096)).longValue());
-        encoder.writeLong(BigInteger.valueOf(Integer.MAX_VALUE).multiply(BigInteger.valueOf(Integer.MAX_VALUE)).longValue());
-        encoder.writeLong(BigInteger.valueOf(Integer.MIN_VALUE).multiply(BigInteger.valueOf(Integer.MAX_VALUE)).longValue());
+        encoder.writeLong(BigInteger.valueOf(Long.MAX_VALUE).longValue());
+        encoder.writeLong(BigInteger.valueOf(Long.MIN_VALUE).longValue());
 
         encoder.writeBytes((new java.lang.String("Hello World!")).getBytes("ASCII"));
         encoder.writeString("¢€");
@@ -67,54 +67,56 @@ importClass(org.apache.commons.codec.binary.Base64);
     
     decoder.feed(generateTest());
     
-    println(decoder.readDouble());
-    println(decoder.readDouble());
-    println(decoder.readDouble());
-    println(decoder.readDouble());
-    println(decoder.readDouble());
-    println(decoder.readDouble());
-    println(decoder.readDouble());
-    println(decoder.readDouble());
-    println(decoder.readDouble());
-    println(decoder.readDouble());
+    Asserts.assertEquals(Number.POSITIVE_INFINITY, decoder.readDouble());
+    Asserts.assertEquals(Number.NEGATIVE_INFINITY, decoder.readDouble());
+    Asserts.assertNaN(decoder.readDouble());
+    Asserts.assertEquals(Number.MAX_VALUE, decoder.readDouble());
+    Asserts.assertEquals(Number.MIN_VALUE, decoder.readDouble());    
+    Asserts.assertDeltaEquals(Double.MIN_NORMAL, decoder.readDouble(), 1e-200);
+    Asserts.assertDeltaEquals(0, decoder.readDouble(), 1e-200);
+    Asserts.assertDeltaEquals(0, decoder.readDouble(), 1e-200);
+    Asserts.assertDeltaEquals(6547.3333333, decoder.readDouble(), 1e-200);
+    Asserts.assertDeltaEquals(-0.000452, decoder.readDouble(), 1e-200);
     
-    println(decoder.readFloat());
-    println(decoder.readFloat());
-    println(decoder.readFloat());
-    println(decoder.readFloat());
-    println(decoder.readFloat());
-    println(decoder.readFloat());
-    println(decoder.readFloat());
-    println(decoder.readFloat());
-    println(decoder.readFloat());
-    println(decoder.readFloat());
-    println(decoder.readFloat());
+    Asserts.assertEquals(Number.POSITIVE_INFINITY, decoder.readFloat());
+    Asserts.assertEquals(Number.NEGATIVE_INFINITY, decoder.readFloat());
+    Asserts.assertNaN(decoder.readFloat());
+    Asserts.assertDeltaEquals(Float.MAX_VALUE, decoder.readFloat(), 1e-200);
+    Asserts.assertDeltaEquals(Float.MIN_VALUE, decoder.readFloat(), 1e-200);
+    Asserts.assertDeltaEquals(Float.MIN_NORMAL, decoder.readFloat(), 1e-200);
+    Asserts.assertDeltaEquals(0, decoder.readFloat(), 1e-200);
+    Asserts.assertDeltaEquals(0, decoder.readFloat(), 1e-200);
+    Asserts.assertDeltaEquals(1, decoder.readFloat(), 1e-200);
+    Asserts.assertDeltaEquals(0.25, decoder.readFloat(), 1e-200);
+    Asserts.assertDeltaEquals(-12.662, decoder.readFloat().toPrecision(5), 1e-200);
 
-    println(decoder.readBoolean());
-    println(decoder.readBoolean());
+    Asserts.assertTrue(decoder.readBoolean());
+    Asserts.assertFalse(decoder.readBoolean());    
 
-    println(decoder.readInt());
-    println(decoder.readInt());
-    println(decoder.readInt());
-    println(decoder.readInt());
-    println(decoder.readInt());
-    println(decoder.readInt());
+    Asserts.assertEquals(10, decoder.readInt());
+    Asserts.assertEquals(-50, decoder.readInt());
+    Asserts.assertEquals(234234, decoder.readInt());
+    Asserts.assertEquals(-346456, decoder.readInt());
+    Asserts.assertEquals(2147483646, decoder.readInt());
+    Asserts.assertEquals(-2147483647, decoder.readInt());
 
-    println(decoder.readLong());
-    println(decoder.readLong());
-    println(decoder.readLong());
-    println(decoder.readLong());
-    println(decoder.readLong());
-    println(decoder.readLong());
-    println(decoder.readLong());
-    println(decoder.readLong());
+    Asserts.assertEquals(1, decoder.readLong());
+    Asserts.assertEquals(-2, decoder.readLong());
+    Asserts.assertEquals(2147483648, decoder.readLong());
+    Asserts.assertEquals(-2147483649, decoder.readLong());
+    Asserts.assertEquals(2251799813685247, decoder.readLong());
+    Asserts.assertEquals(-2251799813685248, decoder.readLong());
+    // The max and min long get rounded off
+    Asserts.assertEquals(9223372036854776000, decoder.readLong());
+    Asserts.assertEquals(-9223372036854776000, decoder.readLong());
 
     var bytes = decoder.readBytes();
+    var str = "";
     for (var i = 0; i < bytes.length; i++) {
-        print(String.fromCharCode(bytes[i]));
+        str += String.fromCharCode(bytes[i]);
     }
-    println("");
+    Asserts.assertEquals("Hello World!", str);
 
-    println(decoder.readString());
+    Asserts.assertEquals("¢€", decoder.readString());
 
 })();

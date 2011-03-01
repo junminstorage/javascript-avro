@@ -19,12 +19,14 @@ import javax.script.ScriptException;
 public class Driver {
 
     public static void main(String[] args) throws ScriptException, IOException {
-        if (args.length < 2) {
+        if (args.length < 3) {
             System.err.println("Usage: java Driver [path/to/avro.js] [test/case/dir]");
             return;
         }
 
-        File testDir = new File(args[1]);
+        File avroFile = new File(args[0]);
+        File unitFile = new File(args[1]);
+        File testDir = new File(args[2]);
         File[] testFiles = testDir.listFiles(new FileFilter() {
 
             @Override
@@ -34,13 +36,13 @@ public class Driver {
 
         });
         if (testFiles == null) {
-            System.err.println(String.format("Error: Unable to read test case directory %s", args[1]));
+            System.err.println(String.format("Error: Unable to read test case directory %s", args[2]));
             return;
         }
 
         for (File testFile : testFiles) {
             ScriptEngine scriptEngine = new ScriptEngineManager().getEngineByName("javascript");
-            Reader reader = new MultiFileReader(new File(args[0]), testFile);
+            Reader reader = new MultiFileReader(avroFile, unitFile, testFile);
 
             scriptEngine.eval(reader);
             reader.close();
