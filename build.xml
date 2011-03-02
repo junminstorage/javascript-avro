@@ -41,9 +41,9 @@
         </java>
     </target>
 	-->
-	<target name="test" depends="test-compile">
-		<ant antfile="${test}/build.xml" target="run-all-tests" inheritRefs="true" inheritAll="true" />
-	</target>
+    <target name="test" depends="test-compile">
+        <ant antfile="${test}/build.xml" target="run-all-tests" inheritRefs="true" inheritAll="true" />
+    </target>
 
     <target name="dist" depends="test">
     </target>
