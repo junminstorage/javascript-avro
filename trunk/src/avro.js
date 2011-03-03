@@ -1,135 +1,202 @@
 var AVRO = {};
 
 (function(NS) {
-
     var strictMode = false;
-    var base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-    var decodeLookup = {};
-    var i = 0;
 
-    for (i = 0; i < 64; i++) {
-        decodeLookup[base64Chars.charAt(i)] = i;
-    }
+    // Private namespace for Base64 related objects
+    var Base64 = (function() {
+        var base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+        var decodeLookup = {};
+        var i = 0;
 
-    var Base64ByteWriter = function() {
-        var buffer = [];
-        var output = "";
-
-        var encodeBuffer = function() {
-            var i;
-            var code;
-
-            for (i = 0; i < buffer.length; i++) {
-                switch (i) {
-                    case 0:
-                        output += base64Chars.charAt((buffer[0] >> 2) & 0x3F);
-                        code = (buffer[0] & 0x03) << 4;
-                        break;
-                    case 1:
-                        output += base64Chars.charAt(code | ((buffer[1] & 0xF0) >> 4));
-                        code = (buffer[1] & 0x0F) << 2;
-                        break;
-                    case 2:
-                        output += base64Chars.charAt(code | ((buffer[2] & 0xC0) >> 6));
-                        output += base64Chars.charAt(buffer[2] & 0x3F);
-                        break;
-                }
-            }
-            if (buffer.length !== 3) {
-                output += base64Chars.charAt(code);
-                for (i = 3; i > buffer.length; i--) {
-                    output += "=";
-                }
-            }
-
-            buffer = [];
-        };
+        for (i = 0; i < 64; i++) {
+            decodeLookup[base64Chars.charAt(i)] = i;
+        }
 
         return {
-            writeByte : function(b) {
-                buffer.push(b);
-                if (buffer.length === 3) {
-                    encodeBuffer();
-                }
+            ByteReader : function() {
+                var buffer = [];
+                var srcIdx = 0;
+                var source = "";
+
+                // Private method of Base64ByteReader
+                var fillBuffer = function() {
+                    // decode 3 bytes using 4 bytes from source
+                    var i;
+                    var enc;
+                    var code;
+                    var len = source.length;
+
+                    for (i = 0; srcIdx < len && i < 4; srcIdx++, i++) {
+                        enc = source.charAt(srcIdx);
+                        if (enc === '=') {
+                            buffer.pop();
+                            break;
+                        }
+                        // Skip any unknown character
+                        if (decodeLookup.hasOwnProperty(enc)) {
+                            code = decodeLookup[enc];
+
+                            switch (i) {
+                                case 0:
+                                    buffer[0] = code << 2;
+                                    break;
+                                case 1:
+                                    buffer[0] = buffer[0] | (code >> 4 & 0x03);
+                                    buffer[1] = (code & 0x0F) << 4;
+                                    break;
+                                case 2:
+                                    buffer[1] = buffer[1] | (code >> 2 & 0x0F);
+                                    buffer[2] = (code & 0x03) << 6;
+                                    break;
+                                case 3:
+                                    buffer[2] = buffer[2] | (code & 0x003F);
+                                    break;
+                            }
+                        } else {
+                            i--;
+                        }
+                    }
+                };
+
+                // Public interface supported by Base64ByteReader
+                return {
+
+                    // Feed in base64 encode string
+                    update : function(base64Str) {
+                        source += base64Str;
+                    },
+
+                    // Return the next byte as integer
+                    readByte : function() {
+                        if (buffer.length <= 0) {
+                            fillBuffer();
+                            if (buffer.length <= 0) {
+                                return -1;
+                            }
+                        }
+
+                        return buffer.shift();
+                    }
+                };
             },
 
-            getEncoded : function(last) {
-                if (last && buffer.length !== 0) {
-                    encodeBuffer();
-                }
-                var res = output;
-                output = "";
-                return res;
-            }
-        };
-    };
+            ByteWriter : function() {
+                var buffer = [];
+                var output = "";
 
-    var Base64ByteReader = function() {
-        var buffer = [];
-        var srcIdx = 0;
-        var source = "";
+                var encodeBuffer = function() {
+                    var i;
+                    var code;
 
-        // Private method of Base64ByteReader
-        var fillBuffer = function() {
-            // decode 3 bytes using 4 bytes from source
-            var i;
-            var enc;
-            var code;
-            var len = source.length;
-
-            for (i = 0; srcIdx < len && i < 4; srcIdx++, i++) {
-                enc = source.charAt(srcIdx);
-                if (enc === '=') {
-                    buffer.pop();
-                    break;
-                }
-                // Skip any unknown character
-                if (decodeLookup.hasOwnProperty(enc)) {
-                    code = decodeLookup[enc];
-
-                    switch (i) {
-                        case 0:
-                            buffer[0] = code << 2;
-                            break;
-                        case 1:
-                            buffer[0] = buffer[0] | (code >> 4 & 0x03);
-                            buffer[1] = (code & 0x0F) << 4;
-                            break;
-                        case 2:
-                            buffer[1] = buffer[1] | (code >> 2 & 0x0F);
-                            buffer[2] = (code & 0x03) << 6;
-                            break;
-                        case 3:
-                            buffer[2] = buffer[2] | (code & 0x003F);
-                            break;
+                    for (i = 0; i < buffer.length; i++) {
+                        switch (i) {
+                            case 0:
+                                output += base64Chars.charAt((buffer[0] >> 2) & 0x3F);
+                                code = (buffer[0] & 0x03) << 4;
+                                break;
+                            case 1:
+                                output += base64Chars.charAt(code | ((buffer[1] & 0xF0) >> 4));
+                                code = (buffer[1] & 0x0F) << 2;
+                                break;
+                            case 2:
+                                output += base64Chars.charAt(code | ((buffer[2] & 0xC0) >> 6));
+                                output += base64Chars.charAt(buffer[2] & 0x3F);
+                                break;
+                        }
                     }
-                } else {
-                    i--;
-                }
+                    if (buffer.length !== 3) {
+                        output += base64Chars.charAt(code);
+                        for (i = 3; i > buffer.length; i--) {
+                            output += "=";
+                        }
+                    }
+
+                    buffer = [];
+                };
+
+                return {
+                    writeByte : function(b) {
+                        buffer.push(b);
+                        if (buffer.length === 3) {
+                            encodeBuffer();
+                        }
+                    },
+
+                    getEncoded : function(last) {
+                        if (last && buffer.length !== 0) {
+                            encodeBuffer();
+                        }
+                        var res = output;
+                        output = "";
+                        return res;
+                    }
+                };
             }
         };
-
-        // Public interface supported by Base64ByteReader
+    }());
+    
+    // Private namespace for Utf8 methods
+    var Utf8 = (function() {
         return {
-
-            // Feed in base64 encode string
-            update : function(base64Str) {
-                source += base64Str;
-            },
-
-            // Return the next byte as integer
-            readByte : function() {
-                if (buffer.length <= 0) {
-                    fillBuffer();
-                    if (buffer.length <= 0) {
-                        return -1;
+            // Encodes UCS2 into UTF8 and writes to writer
+            encode : function(str, writer) {
+                var len = str.length;
+                var result = [];
+                var code;
+                var i;
+                for (i = 0; i < len; i++) {
+                    code = str.charCodeAt(i);                    
+                    if (code <= 0x7f) {
+                        result.push(code);
+                    } else {
+                        if (code <= 0x7ff) {    // 2 bytes
+                            writer.writeByte((0xc0 | ((code & 0x07c0) >> 6)) & 0x00ff);
+                            writer.writeByte((0x80 | (code & 0x3f)) & 0x00ff);
+                        } else {                // 3 bytes
+                            writer.writeByte((0xe0 | ((code & 0xf000) >> 12)) & 0x00ff);
+                            writer.writeByte((0x80 | ((code & 0x0fc0) >> 6)) & 0x00ff);
+                            writer.writeByte((0x80 | (code & 0x3f)) & 0x00ff);
+                        }                        
                     }
                 }
-
-                return buffer.shift();
+            },
+            
+            // Decodes UTF8 into UCS2
+            decode : function(bytes) {
+                var len = bytes.length;
+                var result = "";
+                var code;
+                var i;
+                for (i = 0; i < len; i++) {
+                    if (bytes[i] <= 0x7f) {
+                        result += String.fromCharCode(bytes[i]);
+                    } else {
+                        // Mutlibytes
+                        if (bytes[i] >= 0xc0 && bytes[i] < 0xe0) {              // 2
+                            // bytes
+                            code = ((bytes[i++] & 0x1f) << 6) |
+                            (bytes[i] & 0x3f);
+                        } else if (bytes[i] >= 0xe0 && bytes[i] < 0xf0) {       // 3
+                            // bytes
+                            code = ((bytes[i++] & 0x0f) << 12) |
+                            ((bytes[i++] & 0x3f) << 6)  |
+                            (bytes[i] & 0x3f);
+                        } else {
+                            // JS cannot represent 4 bytes UTF8, as JS use UCS2 (2
+                            // btyes)
+                            // Simply skip the character
+                            i += 3;
+                            continue;
+                        }
+                        result += String.fromCharCode(code);
+                    }
+                }
+                return result;
             }
         };
-    };
+    }());
+
 
     NS.setStrictMode = function(strict) {
         strictMode = strict;
@@ -137,7 +204,7 @@ var AVRO = {};
 
     // Create a Avro binary encoder where the binary data is base64 encoded
     NS.Base64BinaryEncoder = function() {
-        var writer = Base64ByteWriter();
+        var writer = Base64.ByteWriter();
 
         return {
             writeNull : function() {
@@ -192,11 +259,11 @@ var AVRO = {};
             // To Be Implemented
             }
         };
-    }
+    };
 
     // Create a Avro binary decoder where the binary data is base64 encoded
     NS.Base64BinaryDecoder = function() {
-        var reader = Base64ByteReader();
+        var reader = Base64.ByteReader();
         var checkedReadByte = function() {
             var b = reader.readByte();
             if (b === -1) {
@@ -235,36 +302,7 @@ var AVRO = {};
             }
             return count;
         };
-        var decodeUtf8 = function(bytes) {
-            var len = bytes.length;
-            var result = "";
-            var code;
-            for (i = 0; i < len; i++) {
-                if (bytes[i] <= 0x7f) {
-                    result += String.fromCharCode(bytes[i]);
-                } else {
-                    // Mutlibytes
-                    if (bytes[i] >= 0xc0 && bytes[i] < 0xe0) {              // 2
-                        // bytes
-                        code = ((bytes[i++] & 0x1f) << 6) |
-                        (bytes[i] & 0x3f);
-                    } else if (bytes[i] >= 0xe0 && bytes[i] < 0xf0) {       // 3
-                        // bytes
-                        code = ((bytes[i++] & 0x0f) << 12) |
-                        ((bytes[i++] & 0x3f) << 6)  |
-                        (bytes[i] & 0x3f);
-                    } else {
-                        // JS cannot represent 4 bytes UTF8, as JS use UCS2 (2
-                        // btyes)
-                        // Simply skip the character
-                        i += 3;
-                        continue;
-                    }
-                    result += String.fromCharCode(code);
-                }
-            }
-            return result;
-        };
+
 
         return {
             feed : function(base64Str) {
@@ -420,7 +458,7 @@ var AVRO = {};
                 return res;
             },
             readString : function() {
-                return decodeUtf8(this.readBytes());
+                return Utf8.decode(this.readBytes());
             },
             readFixed : function(result) {
                 var len = result.length;
