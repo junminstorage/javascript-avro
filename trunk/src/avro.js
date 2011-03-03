@@ -149,16 +149,14 @@ var AVRO = {};
                     code = str.charCodeAt(i);                    
                     if (code <= 0x7f) {
                         result.push(code);
-                    } else {
-                        if (code <= 0x7ff) {    // 2 bytes
-                            writer.writeByte((0xc0 | ((code & 0x07c0) >> 6)) & 0x00ff);
-                            writer.writeByte((0x80 | (code & 0x3f)) & 0x00ff);
-                        } else {                // 3 bytes
-                            writer.writeByte((0xe0 | ((code & 0xf000) >> 12)) & 0x00ff);
-                            writer.writeByte((0x80 | ((code & 0x0fc0) >> 6)) & 0x00ff);
-                            writer.writeByte((0x80 | (code & 0x3f)) & 0x00ff);
-                        }                        
-                    }
+                    } else if (code <= 0x7ff) {     // 2 bytes
+                        writer.writeByte((0xc0 | ((code & 0x07c0) >> 6)) & 0x00ff);
+                        writer.writeByte((0x80 | (code & 0x3f)) & 0x00ff);
+                    } else {                        // 3 bytes
+                        writer.writeByte((0xe0 | ((code & 0xf000) >> 12)) & 0x00ff);
+                        writer.writeByte((0x80 | ((code & 0x0fc0) >> 6)) & 0x00ff);
+                        writer.writeByte((0x80 | (code & 0x3f)) & 0x00ff);
+                    }                        
                 }
             },
             
