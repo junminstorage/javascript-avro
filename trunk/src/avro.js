@@ -84,7 +84,7 @@ var AVRO = {};
                     break;
                 }
                 // Skip any unknown character
-                if (decodeLookup.hasOwnProperty(enc)) {                
+                if (decodeLookup.hasOwnProperty(enc)) {
                     code = decodeLookup[enc];
 
                     switch (i) {
@@ -184,7 +184,7 @@ var AVRO = {};
             },
             setItemCount : function() {
             // To Be Implemented
-            },        	
+            },
             writeMapStart : function() {
             // To Be Implemented
             },
@@ -330,10 +330,10 @@ var AVRO = {};
                 }
 
                 /*
-				 * Long with value > 52 bits cannot be resolved precisely due to
-				 * JS use double floating point as the only number
-				 * representation.
-				 */
+                 * Long with value > 52 bits cannot be resolved precisely due to
+                 * JS use double floating point as the only number
+                 * representation.
+                 */
                 // Two's complement'
                 b = ("0x" + toPaddedHex(n) + toPaddedHex(low)) * sign;
                 if (sign < 0) {
@@ -382,7 +382,7 @@ var AVRO = {};
                 var sign = ((high >> 31) << 1) + 1;
                 var expo = (high & 0x7ff00000) >> 20;
                 var mantHigh = high & 0x000fffff;
-                var mant = 0;                
+                var mant = 0;
 
                 if (expo === 0) {
                     if (low === 0 && mantHigh === 0) {
