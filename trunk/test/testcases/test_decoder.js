@@ -57,7 +57,7 @@
             encoder.writeLong(Java.BigInteger.valueOf(Java.Long.MIN_VALUE).longValue());
 
             encoder.writeBytes((Java.String("Hello World!")).getBytes("ASCII"));
-            encoder.writeString("$\u00a2\u20ac\u00a2$");
+            encoder.writeString((new Java.StringBuilder("$")).appendCodePoint(0xa2).appendCodePoint(0x20ac).appendCodePoint(0xa2).append("$").toString());
 
             encoder.flush();
             byteOut.close();
