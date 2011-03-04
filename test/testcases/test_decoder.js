@@ -1,11 +1,11 @@
 (function() {
-    
+
     var Java = new JavaImporter(java.lang,
-                                java.io, 
-                                java.math, 
-                                org.apache.avro.io, 
+                                java.io,
+                                java.math,
+                                org.apache.avro.io,
                                 org.apache.commons.codec.binary);
-    
+
     var encodedBase64 = "";
 
     testCases(test,
@@ -57,7 +57,7 @@
             encoder.writeLong(Java.BigInteger.valueOf(Java.Long.MIN_VALUE).longValue());
 
             encoder.writeBytes((Java.String("Hello World!")).getBytes("ASCII"));
-            encoder.writeString("¢€");
+            encoder.writeString("$\u00a2\u20ac\u00a2$");
 
             encoder.flush();
             byteOut.close();
@@ -81,19 +81,19 @@
             assert.that(decoder.readDouble(), eqFloat(0, 1e-200));
             assert.that(decoder.readDouble(), eqFloat(Java.Double.parseDouble("6547.3333333"), 1e-200));
             assert.that(decoder.readDouble(), eqFloat(Java.Double.parseDouble("-0.000452"), 1e-200));
-            
+
             assert.that(decoder.readFloat(), eq(Number.POSITIVE_INFINITY));
             assert.that(decoder.readFloat(), eq(Number.NEGATIVE_INFINITY));
             assert.that(isNaN(decoder.readFloat()), isTrue());
             assert.that(decoder.readFloat(), eqFloat(Java.Float.MAX_VALUE, 1e-200));
             assert.that(decoder.readFloat(), eqFloat(Java.Float.MIN_VALUE, 1e-200));
-            assert.that(decoder.readFloat(), eqFloat(Java.Float.MIN_NORMAL, 1e-200));            
+            assert.that(decoder.readFloat(), eqFloat(Java.Float.MIN_NORMAL, 1e-200));
             assert.that(decoder.readFloat(), eqFloat(0, 1e-200));
             assert.that(decoder.readFloat(), eqFloat(0, 1e-200));
             assert.that(decoder.readFloat(), eqFloat(Java.Float.parseFloat("1"), 1e-200));
             assert.that(decoder.readFloat(), eqFloat(Java.Float.parseFloat("0.25"), 1e-200));
             assert.that(decoder.readFloat(), eqFloat(Java.Float.parseFloat("-12.662"), 1e-200));
-    
+
             assert.that(decoder.readBoolean(), isTrue());
             assert.that(decoder.readBoolean(), isFalse());
 
@@ -121,7 +121,7 @@
             }
             assert.that(str, eq("Hello World!"));
 
-            assert.that(decoder.readString(), eq("¢€"));
+            assert.that(decoder.readString(), eq("$\u00a2\u20ac\u00a2$"));
         }
     );
 }());
