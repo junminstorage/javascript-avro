@@ -57,7 +57,7 @@
             encoder.writeLong(Java.BigInteger.valueOf(Java.Long.MIN_VALUE).longValue());
 
             encoder.writeBytes((Java.String("Hello World!")).getBytes("ASCII"));
-            encoder.writeString((new Java.StringBuilder("$")).appendCodePoint(0xa2).appendCodePoint(0x20ac).appendCodePoint(0xa2).append("$").toString());
+            encoder.writeString((new Java.StringBuilder("$")).appendCodePoint(0x20ac).appendCodePoint(0x2f81a).appendCodePoint(0xa2).toString());
 
             encoder.flush();
             byteOut.close();
@@ -120,8 +120,7 @@
                 str += String.fromCharCode(bytes[i]);
             }
             assert.that(str, eq("Hello World!"));
-
-            assert.that(decoder.readString(), eq("$\u00a2\u20ac\u00a2$"));
+            assert.that(decoder.readString(), eq("$\u20ac\ud87e\udc1a\u00a2"));
         }
     );
 }());

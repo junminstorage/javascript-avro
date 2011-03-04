@@ -135,7 +135,7 @@ var AVRO = {};
             }
         };
     }());
-    
+
     // Private namespace for Utf8 methods
     var Utf8 = (function() {
         return {
@@ -146,21 +146,27 @@ var AVRO = {};
                 var code;
                 var i;
                 for (i = 0; i < len; i++) {
-                    code = str.charCodeAt(i);                    
+                    code = str.charCodeAt(i);
                     if (code <= 0x7f) {
                         result.push(code);
-                    } else if (code <= 0x7ff) {     // 2 bytes
+                    } else if (code <= 0x7ff) {                         // 2 bytes
                         writer.writeByte((0xc0 | ((code & 0x07c0) >> 6)) & 0x00ff);
                         writer.writeByte((0x80 | (code & 0x3f)) & 0x00ff);
-                    } else {                        // 3 bytes
+                    } else if (code <= 0xd700 || code >= 0xe000) {      // 3 bytes
                         writer.writeByte((0xe0 | ((code & 0xf000) >> 12)) & 0x00ff);
                         writer.writeByte((0x80 | ((code & 0x0fc0) >> 6)) & 0x00ff);
                         writer.writeByte((0x80 | (code & 0x3f)) & 0x00ff);
-                    }                        
+                    } else {                                            // 4 bytes, surrogate pair
+                        code = (((code - 0xd800) << 10) | (str.charCodeAt(++i) - 0xdc00)) + 0x10000;
+                        writer.writeByte((0xf0 | ((code & 0x001c0000) >> 18)) & 0x00ff);
+                        writer.writeByte((0x80 | ((code & 0x0003f000) >> 12)) & 0x00ff);
+                        writer.writeByte((0x80 | ((code & 0x00000fc0) >> 6)) & 0x00ff);
+                        writer.writeByte((0x80 | (code & 0x3f)) & 0x00ff);
+                    }
                 }
             },
-            
-            // Decodes UTF8 into UCS2
+
+            // Decodes UTF8 into UCS2 (UTF-16BE for surrogate)
             decode : function(bytes) {
                 var len = bytes.length;
                 var result = "";
@@ -171,21 +177,22 @@ var AVRO = {};
                         result += String.fromCharCode(bytes[i]);
                     } else {
                         // Mutlibytes
-                        if (bytes[i] >= 0xc0 && bytes[i] < 0xe0) {              // 2
-                            // bytes
+                        if (bytes[i] >= 0xc0 && bytes[i] < 0xe0) {          // 2 bytes
                             code = ((bytes[i++] & 0x1f) << 6) |
-                            (bytes[i] & 0x3f);
-                        } else if (bytes[i] >= 0xe0 && bytes[i] < 0xf0) {       // 3
-                            // bytes
+                                    (bytes[i] & 0x3f);
+                        } else if (bytes[i] >= 0xe0 && bytes[i] < 0xf0) {   // 3 bytes
                             code = ((bytes[i++] & 0x0f) << 12) |
-                            ((bytes[i++] & 0x3f) << 6)  |
-                            (bytes[i] & 0x3f);
-                        } else {
-                            // JS cannot represent 4 bytes UTF8, as JS use UCS2 (2
-                            // btyes)
-                            // Simply skip the character
-                            i += 3;
-                            continue;
+                                    ((bytes[i++] & 0x3f) << 6)  |
+                                    (bytes[i] & 0x3f);
+                        } else {                                            // 4 bytes
+                            // turned into two character in JS as surrogate pair
+                            code = (((bytes[i++] & 0x07) << 18) |
+                                    ((bytes[i++] & 0x3f) << 12) |
+                                    ((bytes[i++] & 0x3f) << 6) |
+                                    (bytes[i] & 0x3f)) - 0x10000;
+
+                            result += String.fromCharCode(((code & 0x000ffc00) >> 10) + 0xd800);
+                            code = (code & 0x03ff) + 0xdc00;
                         }
                         result += String.fromCharCode(code);
                     }
