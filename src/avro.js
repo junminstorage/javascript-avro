@@ -165,7 +165,8 @@ var AVRO = {};
                 }
             },
 
-            // Decodes UTF8 into UCS2 (UTF-16BE for surrogate)
+            // Decodes UTF8 into UCS2
+            // Returns a string
             decode : function(bytes) {
                 var len = bytes.length;
                 var result = "";
@@ -174,27 +175,26 @@ var AVRO = {};
                 for (i = 0; i < len; i++) {
                     if (bytes[i] <= 0x7f) {
                         result += String.fromCharCode(bytes[i]);
-                    } else {
-                        // Mutlibytes
-                        if (bytes[i] >= 0xc0 && bytes[i] < 0xe0) {          // 2 bytes
+                    } else if (bytes[i] >= 0xc0) {                                   // Mutlibytes
+                        if (bytes[i] < 0xe0) {                                       // 2 bytes
                             code = ((bytes[i++] & 0x1f) << 6) |
                                     (bytes[i] & 0x3f);
-                        } else if (bytes[i] >= 0xe0 && bytes[i] < 0xf0) {   // 3 bytes
+                        } else if (bytes[i] < 0xf0) {                                // 3 bytes
                             code = ((bytes[i++] & 0x0f) << 12) |
-                                    ((bytes[i++] & 0x3f) << 6)  |
+                                   ((bytes[i++] & 0x3f) << 6)  |
                                     (bytes[i] & 0x3f);
-                        } else {                                            // 4 bytes
+                        } else {                                                     // 4 bytes
                             // turned into two character in JS as surrogate pair
                             code = (((bytes[i++] & 0x07) << 18) |
                                     ((bytes[i++] & 0x3f) << 12) |
                                     ((bytes[i++] & 0x3f) << 6) |
-                                    (bytes[i] & 0x3f)) - 0x10000;
-
+                                     (bytes[i] & 0x3f)) - 0x10000;
+                            // High surrogate
                             result += String.fromCharCode(((code & 0xffc00) >>> 10) + 0xd800);
                             code = (code & 0x3ff) + 0xdc00;
                         }
                         result += String.fromCharCode(code);
-                    }
+                    } // Otherwise it's an invalid UTF-8, skipped.
                 }
                 return result;
             }
