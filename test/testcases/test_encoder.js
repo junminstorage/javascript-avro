@@ -1,9 +1,9 @@
 (function() {
-    
+
     var Java = new JavaImporter(java.lang,
-                                java.io, 
-                                java.math, 
-                                org.apache.avro.io, 
+                                java.io,
+                                java.math,
+                                org.apache.avro.io,
                                 org.apache.commons.codec.binary);
 
     testCases(test,

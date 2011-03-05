@@ -149,17 +149,17 @@ var AVRO = {};
                     if (code <= 0x7f) {
                         writer.writeByte(code);
                     } else if (code <= 0x7ff) {                         // 2 bytes
-                        writer.writeByte(0xc0 | ((code & 0x7c0) >>> 6));
+                        writer.writeByte(0xc0 | (code >>> 6 & 0x1f));
                         writer.writeByte(0x80 | (code & 0x3f));
                     } else if (code <= 0xd700 || code >= 0xe000) {      // 3 bytes
-                        writer.writeByte(0xe0 | ((code & 0xf000) >>> 12));
-                        writer.writeByte(0x80 | ((code & 0xfc0) >>> 6));
+                        writer.writeByte(0xe0 | (code >>> 12 & 0x0f));
+                        writer.writeByte(0x80 | (code >>> 6 & 0x3f));
                         writer.writeByte(0x80 | (code & 0x3f));
                     } else {                                            // 4 bytes, surrogate pair
                         code = (((code - 0xd800) << 10) | (str.charCodeAt(++i) - 0xdc00)) + 0x10000;
-                        writer.writeByte(0xf0 | ((code & 0x1c0000) >>> 18));
-                        writer.writeByte(0x80 | ((code & 0x3f000) >>> 12));
-                        writer.writeByte(0x80 | ((code & 0xfc0) >>> 6));
+                        writer.writeByte(0xf0 | (code >>> 18 & 0x07));
+                        writer.writeByte(0x80 | (code >>> 12 & 0x3f));
+                        writer.writeByte(0x80 | (code >>> 6 & 0x3f));
                         writer.writeByte(0x80 | (code & 0x3f));
                     }
                 }
@@ -190,7 +190,7 @@ var AVRO = {};
                                     ((bytes[i++] & 0x3f) << 6) |
                                      (bytes[i] & 0x3f)) - 0x10000;
                             // High surrogate
-                            result += String.fromCharCode(((code & 0xffc00) >>> 10) + 0xd800);
+                            result += String.fromCharCode((code >>> 10 & 0x3ff) + 0xd800);
                             code = (code & 0x3ff) + 0xdc00;
                         }
                         result += String.fromCharCode(code);
