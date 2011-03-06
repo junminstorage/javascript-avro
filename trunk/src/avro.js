@@ -267,14 +267,37 @@ var AVRO = {};
 
     // Create a Avro binary decoder where the binary data is base64 encoded
     NS.Base64BinaryDecoder = function() {
-        var reader = Base64.ByteReader();
-        var checkedReadByte = function() {
-            var b = reader.readByte();
-            if (b === -1) {
-                throw "Insufficient input byte for decode.";
-            }
-            return b;
-        };
+        // A reader inherited from Base64 reader
+        var reader = (function() {
+            var base = Base64.ByteReader();
+            var func = function() {};
+            func.prototype = base;
+            var obj = new func();
+
+            // Throw exception when there are no more byte to read
+            obj.readByte = function() {
+                var b = base.readByte();
+                if (b === -1) {
+                    throw "Insufficient input byte for decode.";
+                }
+                return b;
+            };
+
+            // Reads 32 bits little-endian value
+            obj.read32le = function() {
+                var b;
+                var v = 0;
+                var i;
+                for (i = 0; i < 32; i += 8) {
+                    b = this.readByte();
+                    v |= (b << i);
+                }
+                return v;
+            };
+
+            return obj;
+        }());
+
         var toPaddedHex = function(n) {
             var hex = "";
             var b;
@@ -286,18 +309,8 @@ var AVRO = {};
 
             return hex;
         };
-        // Read 32 bits little-endian value
-        var read32 = function() {
-            var b;
-            var v = 0;
-            var i;
-            for (i = 0; i < 32; i += 8) {
-                b = checkedReadByte();
-                v |= (b << i);
-            }
-            return v;
-        };
-        // Private method for reading count for array and map
+
+        // Reads count for array and map
         var readCount = function(decoder) {
             var count = decoder.readLong();
             if (count < 0) {
@@ -307,7 +320,6 @@ var AVRO = {};
             return count;
         };
 
-
         return {
             feed : function(base64Str) {
                 reader.update(base64Str);
@@ -316,15 +328,15 @@ var AVRO = {};
             // Do nothing
             },
             readBoolean : function() {
-                return checkedReadByte() === 1 ? true : false;
+                return reader.readByte() === 1 ? true : false;
             },
             readInt : function() {
                 var i;
-                var b = checkedReadByte();
+                var b = reader.readByte();
                 var n = b & 0x7f;
 
                 for (i = 7; i <= 28 && b > 0x7f; i += 7) {
-                    b = checkedReadByte();
+                    b = reader.readByte();
                     n |= (b & 0x7f) << i;
                 }
 
@@ -337,13 +349,13 @@ var AVRO = {};
 
             readLong : function() {
                 var i;
-                var b = checkedReadByte();
+                var b = reader.readByte();
                 var sign = ((b & 0x01) === 0) ? 1 : -1;
                 var n = b & 0x7f;
                 var low;
 
                 for (i = 7; i <= 28 && b > 0x7f; i += 7) {
-                    b = checkedReadByte();
+                    b = reader.readByte();
                     n |= (b & 0x7f) << i;
                 }
 
@@ -356,7 +368,7 @@ var AVRO = {};
                 low = n >>> 1;
                 n = (b >> 4) & 0x07;
                 for (i = 3; i < 32 && b > 0x7f; i += 7) {
-                    b = checkedReadByte();
+                    b = reader.readByte();
                     n |= (b & 0x7f) << i;
                 }
 
@@ -385,7 +397,7 @@ var AVRO = {};
             },
 
             readFloat : function() {
-                var value = read32();
+                var value = reader.read32le();
 
                 if (strictMode) {    // In strictMode, return the 32 bit
                     // float
@@ -414,8 +426,8 @@ var AVRO = {};
                 return sign * mant * Math.pow(2, expo - 23);
             },
             readDouble : function() {
-                var low = read32();
-                var high = read32();
+                var low = reader.read32le();
+                var high = reader.read32le();
 
                 if (strictMode) {
                     return [low, high];
@@ -456,7 +468,7 @@ var AVRO = {};
                 var len = this.readLong();
                 var res = [];
                 while (len > 0) {
-                    res.push(checkedReadByte());
+                    res.push(reader.readByte());
                     len--;
                 }
                 return res;
@@ -468,7 +480,7 @@ var AVRO = {};
                 var len = result.length;
                 var i;
                 for (i = 0; i < len; i++) {
-                    result[i] = checkedReadByte();
+                    result[i] = reader.readByte();
                 }
             },
             readEnum : function() {
