@@ -121,6 +121,9 @@
             }
             assert.that(str, eq("Hello World!"));
             assert.that(decoder.readString(), eq("$\u20ac\ud87e\udc1a\u00a2"));
+
+            // Not more bytes to read, should throw exception.
+            shouldThrowException(function() { decoder.readBoolean(); });
         }
     );
 }());
