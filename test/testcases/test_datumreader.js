@@ -18,7 +18,7 @@
                         {name : "name", type : "string"},
                         {name : "age", type : "int"},
                         {name : "tags", type : {type : "array", items : "string"}},
-                        {name : "attrs", type : ["null", {type : "map", values : "string"}]},
+                        {name : "attrs", type : [{type : "map", values : "string"}, "null"]},
                         {name : "occupation", type : ["null", {type : "enum", name : "Occupation", symbols : ["ENGINEER", "OTHER"]}]}
                     ]                        
                  };
@@ -47,7 +47,7 @@
             
             record.put("attrs", attrs);
             
-//            record.put("occupation", new Java.GenericData.EnumSymbol("OTHER"));
+            record.put("occupation", new Java.GenericData.EnumSymbol("OTHER"));
             
             writer.write(record, encoder);
 
@@ -64,7 +64,19 @@
             decoder.feed(encodedBase64);
                         
             var record = reader.read();
-            println(JSON.stringify(record));
+            
+            assert.that(record, isOfType("object"));
+            assert.that(record.name, eq("Hello"));
+            assert.that(record.age, eq(10));
+
+            assert.that(record.tags, isOfType("array"));
+            assert.that(record.tags, containsInOrder("Tag1", "Tag2"));
+            
+            assert.that(record.attrs, isOfType("object"));
+            assert.that(record.attrs["attr1"], eq("value1"));
+            assert.that(record.attrs["attr2"], eq("value2"));
+            
+            assert.that(record.occupation, eq("OTHER"));
         }
     );
 }());

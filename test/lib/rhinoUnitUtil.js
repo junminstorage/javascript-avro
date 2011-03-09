@@ -245,8 +245,22 @@ function isA(expected) {
 
 function isOfType(expected) {
     return function (actual, not) {
+        var typeOf = function (value) {
+            var s = typeof value;
+            if (s === 'object') {
+                if (value) {
+                    if (value instanceof Array) {
+                        s = 'array';
+                    }
+                } else {
+                    s = 'null';
+                }
+            }
+            return s;
+        };
+        
         return AssertionException.testOrNot(
-            typeof actual === expected, 
+            typeOf(actual) === expected, 
             not, 
             "expected:<" + AssertionException.print(actual) + "> to be of type:<" + expected + "> but it was " + (typeof actual), 
             "expected:<" + AssertionException.print(actual) + "> to be of any type except:<" + expected + ">, but it was");

@@ -200,6 +200,28 @@ var AVRO = {};
             }
         };
     }());
+    
+    // Common private methods
+    var typeOf = function (value) {
+        var s = typeof value;
+        if (s === 'object') {
+            if (value) {
+                if (value instanceof Array) {
+                    s = 'array';
+                }
+            } else {
+                s = 'null';
+            }
+        }
+        return s;
+    };
+
+    var ucFirst = function(str) {
+        if (str.length <= 1) {
+            return str.toUpperCase();
+        }
+        return str.substring(0, 1).toUpperCase() + str.substring(1);
+    };
 
 
     NS.setStrictMode = function(strict) {
@@ -507,98 +529,81 @@ var AVRO = {};
 
     // Create a reader that decode according to the provided schema
     NS.DatumReader = function(schema, decoder) {
-        var typeOf = function (value) {
-            var s = typeof value;
-            if (s === 'object') {
-                if (value) {
-                    if (value instanceof Array) {
-                        s = 'array';
-                    }
-                } else {
-                    s = 'null';
-                }
-            }
-            return s;
-        };
-        
-        var ucFirst = function(str) {
-            if (str.length <= 1) {
-                return str.toUpperCase();
-            }
-            return str.substring(0, 1).toUpperCase() + str.substring(1);
-        };
 
+        var readDatum = function(schema) {
+            var type;
+            var i;
+            var result;
+
+            switch (typeOf(schema)) {
+                case "object":
+                    type = schema.type;
+                break;
+                case "string":
+                    type = schema;
+                break;
+                case "array":
+                    type = "union";
+                break;
+                default:
+                    throw "Invalid schema type.";
+            }
+
+            switch (type) {
+                // Primitive types
+                case "null":
+                case "boolean":
+                case "int":
+                case "long":
+                case "float":
+                case "double":
+                case "bytes":
+                case "string":
+                    return decoder["read" + ucFirst(type)].apply(decoder);
+
+                // Complex types
+                case "record":
+                    result = {};
+                    for (i = 0; i < schema.fields.length; i++) {
+                        result[schema.fields[i].name] = readDatum(schema.fields[i].type);
+                    }
+                    return result;
+
+                case "enum":
+                    return schema.symbols[decoder.readEnum()];
+
+                case "array":
+                    result = [];
+                    i = decoder.readArrayStart();
+                    while (i !== 0) {
+                        while (i-- > 0) {
+                            result.push(readDatum(schema.items));
+                        }
+                        i = decoder.arrayNext();
+                    }
+                    return result;
+
+                case "map":
+                    result = {};
+                    i = decoder.readMapStart();
+                    while (i !== 0) {
+                        while (i-- > 0) {
+                            result[readDatum("string")] = readDatum(schema.values);
+                        }
+                        i = decoder.mapNext();
+                    }
+                    return result;
+                case "union":
+                    return readDatum(schema[decoder.readIndex()]);
+
+                default:
+                    throw "Unsupported schema type " + type;
+            }
+        };
         
         return {
             read : function() {
-                var type;
-                var i;
-                var result;
-
-                switch (typeOf(schema)) {
-                    case "object":
-                        type = schema.type;
-                    break;
-                    case "string":
-                        type = schema;
-                    break;
-                    case "array":
-                        type = "union";
-                    break;
-                    default:
-                        throw "Invalid schema type.";
-                }
-                
-                switch (type) {
-                    // Primitive types
-                    case "null":
-                    case "boolean":
-                    case "int":
-                    case "long":
-                    case "float":
-                    case "double":
-                    case "bytes":
-                    case "string":
-                        return decoder["read" + ucFirst(type)].apply(decoder);
-
-                    // Complex types
-                    case "record":
-                        result = {};
-                        for (i = 0; i < schema.fields.length; i++) {
-                            result[schema.fields[i].name] = NS.DatumReader(schema.fields[i].type, decoder).read();
-                        }
-                        return result;
-                    
-                    case "enum":
-                        return schema.symbols[decoder.readEnum()];
-                    
-                    case "array":
-                        result = [];
-                        i = decoder.readArrayStart();
-                        while (i !== 0) {
-                            while (i-- > 0) {
-                                result.push(NS.DatumReader(schema.items, decoder).read());
-                            }
-                            i = decoder.arrayNext();
-                        }
-                        return result;
-                        
-                    case "map":
-                        result = {};
-                        i = decoder.readMapStart();
-                        while (i !== 0) {
-                            while (i-- > 0) {
-                                result[NS.DatumReader("string", decoder).read()] = NS.DatumReader(schema.values, decoder).read();
-                            }
-                            i = decoder.mapNext();
-                        }
-                        return result;
-                    case "union":
-                        return NS.DatumReader(schema[decoder.readIndex()], decoder).read();
-
-                    default:
-                        throw "Unsupported schema type " + type;
-                }
+                return readDatum(schema);
             }
         };
     };
