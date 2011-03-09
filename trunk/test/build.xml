@@ -20,6 +20,9 @@
             <libset dir="${build}">
                 <include name="*.js"/>
             </libset>
+            <libset dir="${test}/lib">
+                <include name="json2.js"/>
+            </libset>
             <testset dir="${test}/testcases">
                 <include name="*.js"/>
             </testset>
