@@ -235,6 +235,9 @@ var AVRO = {};
         var writer = Base64.ByteWriter();
 
         return {
+            getEncoded : function(last) {
+                return writer.getEncoded(last);
+            },
             writeNull : function() {
                 // Nothing need to write
             },
@@ -242,7 +245,24 @@ var AVRO = {};
                 writer.writeByte(value ? 1 : 0);
             },
             writeInt : function(value) {
-            // To Be Implemented
+                var n = (value << 1) ^ (value >> 31);
+                if ((n & ~0x7f) !== 0) {
+                    writer.writeByte(n & 0xff | 0x80);
+                    n >>>= 7;
+                    if (n > 0x7f) {
+                        writer.writeByte(n & 0xff | 0x80);
+                        n >>>= 7;
+                        if (n > 0x7f) {
+                            writer.writeByte(n & 0xff | 0x80);
+                            n >>>= 7;
+                            if (n > 0x7f) {
+                                writer.writeByte(n & 0xff | 0x80);
+                                n >>>= 7;
+                            }
+                        }
+                    }
+                }
+                writer.writeByte(n);
             },
             writeLong : function(value) {
             // To Be Implemented
