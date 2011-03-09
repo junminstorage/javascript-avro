@@ -140,29 +140,31 @@ var AVRO = {};
     var Utf8 = (function() {
         return {
             // Encodes UCS2 into UTF8 and writes to writer
-            encode : function(str, writer) {
+            encode : function(str) {
                 var len = str.length;
+                var result = [];
                 var code;
                 var i;
                 for (i = 0; i < len; i++) {
                     code = str.charCodeAt(i);
                     if (code <= 0x7f) {
-                        writer.writeByte(code);
+                        result.push(code);
                     } else if (code <= 0x7ff) {                         // 2 bytes
-                        writer.writeByte(0xc0 | (code >>> 6 & 0x1f));
-                        writer.writeByte(0x80 | (code & 0x3f));
+                        result.push(0xc0 | (code >>> 6 & 0x1f),
+                                    0x80 | (code & 0x3f));
                     } else if (code <= 0xd700 || code >= 0xe000) {      // 3 bytes
-                        writer.writeByte(0xe0 | (code >>> 12 & 0x0f));
-                        writer.writeByte(0x80 | (code >>> 6 & 0x3f));
-                        writer.writeByte(0x80 | (code & 0x3f));
+                        result.push(0xe0 | (code >>> 12 & 0x0f),
+                                    0x80 | (code >>> 6 & 0x3f),
+                                    0x80 | (code & 0x3f));
                     } else {                                            // 4 bytes, surrogate pair
                         code = (((code - 0xd800) << 10) | (str.charCodeAt(++i) - 0xdc00)) + 0x10000;
-                        writer.writeByte(0xf0 | (code >>> 18 & 0x07));
-                        writer.writeByte(0x80 | (code >>> 12 & 0x3f));
-                        writer.writeByte(0x80 | (code >>> 6 & 0x3f));
-                        writer.writeByte(0x80 | (code & 0x3f));
+                        result.push(0xf0 | (code >>> 18 & 0x07),
+                                    0x80 | (code >>> 12 & 0x3f),
+                                    0x80 | (code >>> 6 & 0x3f),
+                                    0x80 | (code & 0x3f));
                     }
                 }
+                return result;
             },
 
             // Decodes UTF8 into UCS2
@@ -200,7 +202,7 @@ var AVRO = {};
             }
         };
     }());
-    
+
     // Common private methods
     var typeOf = function (value) {
         var s = typeof value;
@@ -234,37 +236,42 @@ var AVRO = {};
 
         return {
             writeNull : function() {
+                // Nothing need to write
+            },
+            writeBoolean : function(value) {
+                writer.writeByte(value ? 1 : 0);
+            },
+            writeInt : function(value) {
             // To Be Implemented
             },
-            writeBoolean : function() {
+            writeLong : function(value) {
             // To Be Implemented
             },
-            writeInt : function() {
+            writeFloat : function(value) {
             // To Be Implemented
             },
-            writeLong : function() {
+            writeDouble : function(value) {
             // To Be Implemented
             },
-            writeFloat : function() {
-            // To Be Implemented
+            writeFixed : function(bytes, start, len) {
+                var i;
+                var end = start + len;
+                for (i = start; i < end; i++) {
+                    writer.writeByte(bytes[i]);
+                }
             },
-            writeDouble : function() {
-            // To Be Implemented
+            writeBytes : function(bytes, start, len) {
+                this.writeLong(len);
+                this.writeFixed(bytes, start, len);
             },
-            writeBytes : function() {
-            // To Be Implemented
+            writeString : function(str) {
+                this.writeBytes(Utf8.encode(str));
             },
-            writeString : function() {
-            // To Be Implemented
+            writeEnum : function(e) {
+                this.writeInt(e);
             },
-            writeFixed : function() {
-            // To Be Implemented
-            },
-            writeEnum : function() {
-            // To Be Implemented
-            },
-            writeIndex : function() {
-            // To Be Implemented
+            writeIndex : function(idx) {
+                this.writeInt(idx);
             },
             writeArrayStart : function() {
             // To Be Implemented
@@ -487,24 +494,19 @@ var AVRO = {};
                 mant += (low + (high & 0x000fffff) * Math.pow(2, 32)) * Math.pow(2, -52);
                 return sign * mant * Math.pow(2, expo);
             },
-            readBytes : function() {
-                var len = this.readLong();
-                var res = [];
-                while (len > 0) {
-                    res.push(reader.readByte());
-                    len--;
+            readFixed : function(len) {
+                var result = [];
+                var i;
+                for (i = 0; i < len; i++) {
+                    result.push(reader.readByte());
                 }
-                return res;
+                return result;
+            },
+            readBytes : function() {
+                return this.readFixed(this.readLong());
             },
             readString : function() {
                 return Utf8.decode(this.readBytes());
-            },
-            readFixed : function(result) {
-                var len = result.length;
-                var i;
-                for (i = 0; i < len; i++) {
-                    result[i] = reader.readByte();
-                }
             },
             readEnum : function() {
                 return this.readInt();
@@ -600,7 +602,7 @@ var AVRO = {};
                     throw "Unsupported schema type " + type;
             }
         };
-        
+
         return {
             read : function() {
                 return readDatum(schema);
