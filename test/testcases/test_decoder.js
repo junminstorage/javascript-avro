@@ -56,6 +56,8 @@
             encoder.writeLong(Java.BigInteger.valueOf(Java.Long.MAX_VALUE).longValue());
             encoder.writeLong(Java.BigInteger.valueOf(Java.Long.MIN_VALUE).longValue());
 
+            var bytes = Java.String("0123456789").getBytes("ASCII");
+            encoder.writeFixed(bytes, 0, bytes.length);
             encoder.writeBytes((Java.String("Hello World!")).getBytes("ASCII"));
             encoder.writeString((new Java.StringBuilder("$")).appendCodePoint(0x20ac).appendCodePoint(0x2f81a).appendCodePoint(0xa2).toString());
 
@@ -67,6 +69,10 @@
 
         function testDecoder() {
             // Varify the decoder
+            var i;
+            var fixed;
+            var bytes;
+            var str;
             var decoder = AVRO.Base64BinaryDecoder();
 
             decoder.feed(encodedBase64);
@@ -114,9 +120,15 @@
             assert.that(decoder.readLong(), eq(Java.Long.MAX_VALUE));
             assert.that(decoder.readLong(), eq(Java.Long.MIN_VALUE));
 
-            var bytes = decoder.readBytes();
-            var str = "";
-            for (var i = 0; i < bytes.length; i++) {
+            fixed = decoder.readFixed(10);
+            assert.that(fixed.length, eq(10));
+            for (i = 0; i < fixed.length; i++) {
+                assert.that(fixed[i], eq(0x30 + i));
+            }
+
+            bytes = decoder.readBytes();
+            str = "";
+            for (i = 0; i < bytes.length; i++) {
                 str += String.fromCharCode(bytes[i]);
             }
             assert.that(str, eq("Hello World!"));
