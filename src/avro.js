@@ -325,7 +325,8 @@ var AVRO = {};
                 reader.update(base64Str);
             },
             readNull : function() {
-            // Do nothing
+                // No bytes consumed
+                return null;
             },
             readBoolean : function() {
                 return reader.readByte() === 1 ? true : false;
@@ -506,9 +507,56 @@ var AVRO = {};
 
     // Create a reader that decode according to the provided schema
     NS.DatumReader = function(schema, decoder) {
+        var typeOf = function (value) {
+            var s = typeof value;
+            if (s === 'object') {
+                if (value) {
+                    if (value instanceof Array) {
+                        s = 'array';
+                    }
+                } else {
+                    s = 'null';
+                }
+            }
+            return s;
+        };
+        
+        var ucFirst = function(str) {
+            if (str.length <= 1) {
+                return str.toUpperCase();
+            }
+            return str.substring(0, 1).toUpperCase() + str.substring(1);
+        };
+
+        
         return {
             read : function() {
+                var type;
+                switch (typeOf(schema)) {
+                    case "object":
+                        type = schema.type;
+                    break;
+                    case "string":
+                        type = schema;
+                    break;
+                    default:
+                        throw "Invalid schema type.";
+                }
+                
+                switch (type) {
+                    case "null":
+                    case "boolean":
+                    case "int":
+                    case "long":
+                    case "float":
+                    case "double":
+                    case "bytes":
+                    case "string":
+                        return decoder["read" + ucFirst(type)].apply(decoder);
 
+                    default:
+                        throw "Unsupported schema type " + type;
+                }
             }
         };
     };
