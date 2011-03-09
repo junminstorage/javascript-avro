@@ -13,6 +13,33 @@
 
         function testEncoder() {
             var encoder = AVRO.Base64BinaryEncoder();
+            encoder.writeInt(10);
+            encoder.writeInt(130);
+            encoder.writeInt(16385);
+            encoder.writeInt(1048576 * 2 + 1);
+            encoder.writeInt(Java.Integer.MAX_VALUE);
+
+            encoder.writeInt(-10);
+            encoder.writeInt(-130);
+            encoder.writeInt(-16385);
+            encoder.writeInt(-1048576 * 2 - 1);
+            encoder.writeInt(Java.Integer.MIN_VALUE);
+
+
+            var decoder = AVRO.Base64BinaryDecoder();
+            decoder.feed(encoder.getEncoded(true));
+
+            println(decoder.readInt());
+            println(decoder.readInt());
+            println(decoder.readInt());
+            println(decoder.readInt());
+            println(decoder.readInt());
+
+            println(decoder.readInt());
+            println(decoder.readInt());
+            println(decoder.readInt());
+            println(decoder.readInt());
+            println(decoder.readInt());
         }
     );
 }());
