@@ -25,21 +25,26 @@
             encoder.writeInt(-1048576 * 2 - 1);
             encoder.writeInt(Java.Integer.MIN_VALUE);
 
+            encoder.writeLong(65538)
+            encoder.writeLong(70871303804);
 
             var decoder = AVRO.Base64BinaryDecoder();
             decoder.feed(encoder.getEncoded(true));
 
-            println(decoder.readInt());
-            println(decoder.readInt());
-            println(decoder.readInt());
-            println(decoder.readInt());
-            println(decoder.readInt());
+            assert.that(decoder.readInt(), eq(10));
+            assert.that(decoder.readInt(), eq(130));
+            assert.that(decoder.readInt(), eq(16385));
+            assert.that(decoder.readInt(), eq(1048576 * 2 + 1));
+            assert.that(decoder.readInt(), eq(Java.Integer.MAX_VALUE));
 
-            println(decoder.readInt());
-            println(decoder.readInt());
-            println(decoder.readInt());
-            println(decoder.readInt());
-            println(decoder.readInt());
+            assert.that(decoder.readInt(), eq(-10));
+            assert.that(decoder.readInt(), eq(-130));
+            assert.that(decoder.readInt(), eq(-16385));
+            assert.that(decoder.readInt(), eq(-1048576 * 2 - 1));
+            assert.that(decoder.readInt(), eq(Java.Integer.MIN_VALUE));
+
+            assert.that(decoder.readLong(), eq(65538));
+            assert.that(decoder.readLong(), eq(70871303804));
         }
     );
 }());
