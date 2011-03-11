@@ -234,6 +234,18 @@ var AVRO = {};
     NS.Base64BinaryEncoder = function() {
         var writer = Base64.ByteWriter();
 
+        var writeVarInt = function(n) {
+            if ((n & ~0x7f) !== 0) {
+                writer.writeByte(n & 0xff | 0x80);
+                n >>>= 7;
+                while (n > 0x7f) {
+                    writer.writeByte(n & 0xff | 0x80);
+                    n >>>= 7;
+                }
+            }
+            writer.writeByte(n);
+        };
+
         return {
             getEncoded : function(last) {
                 return writer.getEncoded(last);
@@ -246,26 +258,35 @@ var AVRO = {};
             },
             writeInt : function(value) {
                 var n = (value << 1) ^ (value >> 31);
-                if ((n & ~0x7f) !== 0) {
-                    writer.writeByte(n & 0xff | 0x80);
-                    n >>>= 7;
-                    if (n > 0x7f) {
-                        writer.writeByte(n & 0xff | 0x80);
-                        n >>>= 7;
-                        if (n > 0x7f) {
-                            writer.writeByte(n & 0xff | 0x80);
-                            n >>>= 7;
-                            if (n > 0x7f) {
-                                writer.writeByte(n & 0xff | 0x80);
-                                n >>>= 7;
-                            }
-                        }
-                    }
-                }
-                writer.writeByte(n);
+                writeVarInt(n);
             },
             writeLong : function(value) {
-            // To Be Implemented
+                var sign = value > 0 ? 0 : 0xffffffff;
+                var low = (value << 1) ^ sign;
+                var high = Math.floor(value / 0x80000000) ^ sign;
+                var i;
+
+                if (high === 0) {
+                    writeVarInt(low);
+                    return;
+                }
+
+                // Write the low bits
+                for (i = 0; i < 4; i++) {
+                    writer.writeByte(low & 0xff | 0x80);
+                    low >>>= 7;
+                }
+
+                writer.writeByte(low | ((high & 0x07) << 4) | 0x80);
+
+                high >>>= 3;
+                while (high > 0x7f) {
+                    writer.writeByte(high & 0xff | 0x80);
+                    high >>>= 7;
+                }
+                if (high !== 0) {
+                    writer.writeByte(high);
+                }
             },
             writeFloat : function(value) {
             // To Be Implemented
